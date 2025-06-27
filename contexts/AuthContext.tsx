@@ -7,6 +7,7 @@ import { getUserProfile } from '../services/firestoreService';
 
 interface AuthContextType {
   currentUser: User | null;
+  setCurrentUser: React.Dispatch<React.SetStateAction<User | null>>; // Para actualizar desde EditProfileModal
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
@@ -109,6 +110,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const value = {
     currentUser,
+    setCurrentUser, // Añadido para poder actualizar el usuario desde fuera
     isLoading,
     login,
     register,
