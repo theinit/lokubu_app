@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage'; // Importar getStorage
 
 // Configuración de Firebase usando variables de entorno
 // Las credenciales se obtienen del archivo .env.local
@@ -24,6 +25,7 @@ const app = initializeApp(firebaseConfig);
 // Get Firebase service instances
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app); // Inicializar Storage
 
 // Configure Firestore settings to handle connection issues
 // This helps prevent WebChannelConnection RPC errors and improves reliability
@@ -34,4 +36,4 @@ try {
   console.error('❌ Error initializing Firestore:', error);
 }
 
-export { auth, db };
+export { auth, db, storage }; // Exportar storage

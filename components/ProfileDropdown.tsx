@@ -4,9 +4,10 @@ import { AppView } from '../types';
 
 interface ProfileDropdownProps {
   onNavigate: (view: AppView) => void;
+  onOpenEditProfile: () => void; // Nueva prop para abrir el modal de edición
 }
 
-const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onNavigate }) => {
+const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onNavigate, onOpenEditProfile }) => {
   const { currentUser, logout, deleteAccount } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -17,6 +18,7 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onNavigate }) => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+        setShowDeleteConfirm(false); // También cierra el modal de confirmación si está abierto
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -27,12 +29,17 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onNavigate }) => {
     setIsOpen(false);
     await logout();
     onNavigate('home');
-  }
+  };
 
   const handleNavigation = (view: AppView) => {
     onNavigate(view);
     setIsOpen(false);
-  }
+  };
+
+  const handleOpenEditProfileModal = () => {
+    onOpenEditProfile();
+    setIsOpen(false);
+  };
 
   const handleDeleteAccount = async () => {
     if (!deletePassword.trim()) {
@@ -59,58 +66,85 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onNavigate }) => {
     setShowDeleteConfirm(false);
     setDeletePassword('');
     setIsOpen(false);
-  }
+  };
 
   const handleDeleteClick = () => {
+    // setIsOpen(false); // Cierra el dropdown principal
     setShowDeleteConfirm(true);
-  }
+  };
 
   const handleCancelDelete = () => {
     setShowDeleteConfirm(false);
     setDeletePassword('');
-  }
+  };
 
   if (!currentUser) return null;
+
+  const displayName = currentUser.name || currentUser.email?.split('@')[0] || "Usuario";
+  const displayPhoto = currentUser.photoURL;
 
   return (
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-2 bg-gray-700 hover:bg-gray-600 p-2 rounded-full transition-colors"
+        className="flex items-center space-x-2 bg-gray-700 hover:bg-gray-600 p-1.5 rounded-full transition-colors"
       >
-        <span className="font-medium text-sm text-gray-200">{currentUser.name}</span>
-         <svg className="h-6 w-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+        {displayPhoto ? (
+          <img src={displayPhoto} alt={displayName} className="h-8 w-8 rounded-full object-cover border-2 border-gray-500" />
+        ) : (
+          <span className="h-8 w-8 rounded-full bg-gray-600 flex items-center justify-center text-gray-300 font-semibold text-sm">
+            {displayName.charAt(0).toUpperCase()}
+          </span>
+        )}
+        <span className="font-medium text-sm text-gray-200 hidden md:block pr-1">{displayName}</span>
+        <svg className={`h-5 w-5 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} md:hidden`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
         </svg>
       </button>
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 bg-gray-800 rounded-md shadow-lg z-[1000] ring-1 ring-white ring-opacity-10 animate-fade-in">
+      {isOpen && !showDeleteConfirm && (
+        <div className="absolute right-0 mt-2 w-60 bg-gray-800 rounded-md shadow-xl z-[1000] ring-1 ring-white ring-opacity-10 animate-fade-in overflow-hidden">
           <div className="py-1">
-             <div className="px-4 py-2 border-b border-gray-700">
-                <p className="text-sm font-semibold text-white">{currentUser.name}</p>
-                <p className="text-xs text-gray-400 truncate">{currentUser.email}</p>
+            <div className="px-4 py-3 border-b border-gray-700 flex items-center space-x-3">
+              {displayPhoto ? (
+                <img src={displayPhoto} alt={displayName} className="h-10 w-10 rounded-full object-cover" />
+              ) : (
+                <span className="h-10 w-10 rounded-full bg-gray-600 flex items-center justify-center text-gray-300 font-semibold">
+                  {displayName.charAt(0).toUpperCase()}
+                </span>
+              )}
+              <div>
+                <p className="text-sm font-semibold text-white truncate" title={displayName}>{displayName}</p>
+                <p className="text-xs text-gray-400 truncate" title={currentUser.email || ''}>{currentUser.email}</p>
+              </div>
             </div>
             <button
-              onClick={() => handleNavigation('create')}
-              className="w-full text-left block px-4 py-2 text-sm text-gray-200 hover:bg-gray-700"
+              onClick={handleOpenEditProfileModal}
+              className="w-full text-left block px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-700 transition-colors"
             >
-              Crear una Experiencia
+              Editar Perfil
+            </button>
+            <button
+              onClick={() => handleNavigation('create')}
+              className="w-full text-left block px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-700 transition-colors"
+            >
+              Crear Experiencia
             </button>
             <button
                onClick={() => handleNavigation('my-experiences')}
-              className="w-full text-left block px-4 py-2 text-sm text-gray-200 hover:bg-gray-700"
+              className="w-full text-left block px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-700 transition-colors"
             >
               Mis Experiencias
             </button>
+            <div className="border-t border-gray-700 my-1"></div>
             <button
               onClick={handleLogout}
-              className="w-full text-left block px-4 py-2 text-sm text-gray-200 hover:bg-gray-700 border-t border-gray-700"
+              className="w-full text-left block px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-700 transition-colors"
             >
               Cerrar Sesión
             </button>
             <button
               onClick={handleDeleteClick}
-              className="w-full text-left block px-4 py-2 text-sm text-red-400 hover:bg-red-900 hover:bg-opacity-20"
+              className="w-full text-left block px-4 py-2.5 text-sm text-red-400 hover:bg-red-900/30 hover:text-red-300 transition-colors"
             >
               Eliminar Cuenta
             </button>

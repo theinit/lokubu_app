@@ -53,6 +53,10 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  lastName?: string;
+  hobbies?: string[];
+  age?: number;
+  photoURL?: string;
 }
 
-export type AppView = 'home' | 'create' | 'my-experiences' | 'detail' | 'edit';
+export type AppView = 'home' | 'create' | 'my-experiences' | 'detail' | 'edit' | 'edit-profile';

@@ -6,6 +6,7 @@ import SearchBar from './components/SearchBar';
 import AITravelPlanner from './components/AITravelPlanner';
 import LoginModal from './components/LoginModal';
 import RegisterModal from './components/RegisterModal';
+import EditProfileModal from './components/EditProfileModal'; // Importar el nuevo modal
 import CreateExperience from './components/CreateExperience';
 import EditExperience from './components/EditExperience';
 import MyExperiences from './components/MyExperiences';
@@ -28,7 +29,8 @@ const App: React.FC = () => {
   const [view, setView] = useState<AppView>('home');
   const [selectedExperience, setSelectedExperience] = useState<Experience | null>(null);
   const [editingExperience, setEditingExperience] = useState<Experience | null>(null);
-  const { currentUser } = useAuth();
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false); // Estado para el modal de edición de perfil
+  const { currentUser, setCurrentUser } = useAuth(); // Obtener setCurrentUser del contexto
 
   useEffect(() => {
     const fetchExperiences = async () => {
@@ -206,6 +208,7 @@ const App: React.FC = () => {
             onLoginClick={() => setActiveModal('login')}
             onRegisterClick={() => setActiveModal('register')}
             onNavigate={handleNavigate}
+            onOpenEditProfile={() => setIsEditProfileModalOpen(true)} // Pasar la función para abrir el modal
         />
         <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
           {renderContent()}
@@ -223,6 +226,16 @@ const App: React.FC = () => {
         onClose={() => setActiveModal(null)}
         onSwitchToLogin={() => setActiveModal('login')}
       />
+      {currentUser && ( // Solo renderizar si hay un usuario logueado
+        <EditProfileModal
+          isOpen={isEditProfileModalOpen}
+          onClose={() => setIsEditProfileModalOpen(false)}
+          onProfileUpdate={(updatedUser) => {
+            setCurrentUser(updatedUser); // Actualizar el usuario en el contexto global
+            setIsEditProfileModalOpen(false);
+          }}
+        />
+      )}
     </>
   );
 };

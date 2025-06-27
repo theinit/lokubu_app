@@ -1,5 +1,6 @@
 import { doc, setDoc, getDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'; // Imports para Storage
+import { db, storage } from '../firebase/config'; // Importar storage
 import { Experience, User } from '../types';
 
 type ExperienceData = Omit<Experience, 'id' | 'host' | 'rating' | 'imageUrl'>;
@@ -12,13 +13,19 @@ type ExperienceData = Omit<Experience, 'id' | 'host' | 'rating' | 'imageUrl'>;
  * @param name The user's name.
  * @param email The user's email.
  */
-export const createUserProfile = async (uid: string, name: string, email: string): Promise<void> => {
+export const createUserProfile = async (uid: string, name: string, email: string, additionalData: Partial<User> = {}): Promise<void> => {
   try {
     console.log('🔄 Creando referencia del documento de usuario:', uid);
     const userDocRef = doc(db, 'users', uid);
     
+    const userData = {
+      name,
+      email,
+      ...additionalData,
+    };
+
     console.log('🔄 Guardando documento en Firestore...');
-    await setDoc(userDocRef, { name, email });
+    await setDoc(userDocRef, userData);
     console.log('✅ Documento de usuario guardado exitosamente en Firestore');
   } catch (error: any) {
     console.error('❌ Error al crear perfil de usuario en Firestore:', error);
@@ -84,11 +91,17 @@ export const getUserProfile = async (uid:string): Promise<User | null> => {
             console.log('✅ Documento de usuario encontrado en Firestore');
             const data = userDocSnap.data();
             if (data) {
-                const userProfile = {
+                const userProfile: User = {
                     id: uid,
                     name: data.name,
-                    email: data.email
-                } as User;
+                    email: data.email,
+                    lastName: data.lastName,
+                    hobbies: data.hobbies,
+                    age: data.age,
+                    photoURL: data.photoURL,
+                };
+                // Remove undefined fields to match the User interface strictly if needed
+                // Object.keys(userProfile).forEach(key => userProfile[key] === undefined && delete userProfile[key]);
                 console.log('✅ Perfil de usuario procesado:', userProfile);
                 return userProfile;
             }
@@ -114,6 +127,73 @@ export const getUserProfile = async (uid:string): Promise<User | null> => {
         return null;
     }
 }
+
+/**
+ * Updates a user profile document in Firestore.
+ * @param uid The user's unique ID.
+ * @param updatedData An object containing the fields to update.
+ */
+export const updateUserProfile = async (uid: string, updatedData: Partial<User>): Promise<void> => {
+  try {
+    console.log('🔄 Actualizando perfil de usuario en Firestore:', uid, updatedData);
+    const userDocRef = doc(db, 'users', uid);
+    await updateDoc(userDocRef, updatedData);
+    console.log('✅ Perfil de usuario actualizado exitosamente en Firestore');
+  } catch (error: any) {
+    console.error('❌ Error al actualizar perfil de usuario en Firestore:', error);
+    if (error.code === 'permission-denied') {
+      console.error('🚫 Error de permisos al actualizar: Verifica las reglas de Firestore');
+    } else if (error.code === 'unavailable') {
+      console.error('🌐 Error de conexión al actualizar: Firestore no está disponible');
+    }
+    throw error;
+  }
+};
+
+/**
+ * Uploads a profile image to Firebase Storage.
+ * @param userId The user's ID, used to create a unique path for the image.
+ * @param file The image file to upload.
+ * @param currentPhotoURL Optional. The URL of the current profile photo to be deleted.
+ * @returns A promise that resolves to the download URL of the uploaded image.
+ */
+export const uploadProfileImage = async (userId: string, file: File, currentPhotoURL?: string): Promise<string> => {
+  try {
+    // 1. Delete the old image if it exists and is a Firebase Storage URL
+    if (currentPhotoURL && currentPhotoURL.includes('firebasestorage.googleapis.com')) {
+      try {
+        const oldImageRef = ref(storage, currentPhotoURL);
+        await deleteObject(oldImageRef);
+        console.log('✅ Antigua imagen de perfil eliminada:', currentPhotoURL);
+      } catch (deleteError: any) {
+        // Log error but don't block upload of new image if deletion fails
+        // (e.g., if the old image was already deleted or permissions changed)
+        if (deleteError.code === 'storage/object-not-found') {
+          console.warn('⚠️ No se encontró la antigua imagen de perfil para eliminar (puede que ya haya sido eliminada):', currentPhotoURL);
+        } else {
+          console.error('❌ Error al eliminar antigua imagen de perfil:', deleteError);
+        }
+      }
+    }
+
+    // 2. Upload the new image
+    // Create a unique path for the image, e.g., profile_images/userId/timestamp_filename
+    const timestamp = Date.now();
+    const imageName = `${timestamp}_${file.name.replace(/\s+/g, '_')}`; // Replace spaces in filename
+    const storageRef = ref(storage, `profile_images/${userId}/${imageName}`);
+
+    console.log(`🔄 Subiendo imagen de perfil a: ${storageRef.fullPath}`);
+    const snapshot = await uploadBytes(storageRef, file);
+    console.log('✅ Imagen de perfil subida exitosamente:', snapshot.metadata.fullPath);
+
+    const downloadURL = await getDownloadURL(snapshot.ref);
+    console.log('✅ URL de descarga obtenida:', downloadURL);
+    return downloadURL;
+  } catch (error) {
+    console.error('❌ Error al subir imagen de perfil:', error);
+    throw error;
+  }
+};
 
 
 // --- EXPERIENCE-RELATED FUNCTIONS ---
