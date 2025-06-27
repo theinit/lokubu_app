@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { updateUserProfile } from '../services/firestoreService';
+import { updateUserProfile, uploadProfileImage } from '../services/firestoreService';
 
 interface EditProfileModalProps {
   isOpen: boolean;
-  onClose: (); => void;
+  onClose: () => void;
   onProfileUpdate: (updatedUser: User) => void;
 }
 

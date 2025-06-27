@@ -7,10 +7,11 @@ interface HeaderProps {
     onLoginClick: () => void;
     onRegisterClick: () => void;
     onNavigate: (view: AppView) => void;
+    onOpenEditProfile: () => void;
 }
 
 
-const Header: React.FC<HeaderProps> = ({ onLoginClick, onRegisterClick, onNavigate }) => {
+const Header: React.FC<HeaderProps> = ({ onLoginClick, onRegisterClick, onNavigate, onOpenEditProfile }) => {
   const { currentUser } = useAuth();
   
   return (
@@ -27,7 +28,7 @@ const Header: React.FC<HeaderProps> = ({ onLoginClick, onRegisterClick, onNaviga
           </div>
           <nav className="flex items-center space-x-4">
              {currentUser ? (
-               <ProfileDropdown onNavigate={onNavigate} />
+               <ProfileDropdown onNavigate={onNavigate} onOpenEditProfile={onOpenEditProfile} />
              ) : (
                 <div className="hidden md:flex items-center space-x-4">
                     <button onClick={onLoginClick} className="text-gray-300 hover:text-white font-medium">

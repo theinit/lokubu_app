@@ -159,38 +159,74 @@ export const updateUserProfile = async (uid: string, updatedData: Partial<User>)
  */
 export const uploadProfileImage = async (userId: string, file: File, currentPhotoURL?: string): Promise<string> => {
   try {
-    // 1. Delete the old image if it exists and is a Firebase Storage URL
-    if (currentPhotoURL && currentPhotoURL.includes('firebasestorage.googleapis.com')) {
-      try {
-        const oldImageRef = ref(storage, currentPhotoURL);
-        await deleteObject(oldImageRef);
-        console.log('✅ Antigua imagen de perfil eliminada:', currentPhotoURL);
-      } catch (deleteError: any) {
-        // Log error but don't block upload of new image if deletion fails
-        // (e.g., if the old image was already deleted or permissions changed)
-        if (deleteError.code === 'storage/object-not-found') {
-          console.warn('⚠️ No se encontró la antigua imagen de perfil para eliminar (puede que ya haya sido eliminada):', currentPhotoURL);
-        } else {
-          console.error('❌ Error al eliminar antigua imagen de perfil:', deleteError);
-        }
-      }
+    console.log('🔄 Iniciando subida de imagen de perfil...');
+    
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      throw new Error('El archivo es demasiado grande. Máximo 5MB permitido.');
     }
 
-    // 2. Upload the new image
-    // Create a unique path for the image, e.g., profile_images/userId/timestamp_filename
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      throw new Error('Tipo de archivo no permitido. Solo se permiten: JPG, PNG, WEBP.');
+    }
+
+    // 1. Upload the new image first
     const timestamp = Date.now();
-    const imageName = `${timestamp}_${file.name.replace(/\s+/g, '_')}`; // Replace spaces in filename
+    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_'); // Sanitize filename
+    const imageName = `${timestamp}_${sanitizedFileName}`;
     const storageRef = ref(storage, `profile_images/${userId}/${imageName}`);
 
-    console.log(`🔄 Subiendo imagen de perfil a: ${storageRef.fullPath}`);
-    const snapshot = await uploadBytes(storageRef, file);
-    console.log('✅ Imagen de perfil subida exitosamente:', snapshot.metadata.fullPath);
+    console.log(`🔄 Subiendo imagen a: profile_images/${userId}/${imageName}`);
+    
+    // Upload with metadata
+    const metadata = {
+      contentType: file.type,
+      customMetadata: {
+        uploadedBy: userId,
+        uploadedAt: new Date().toISOString()
+      }
+    };
+
+    const snapshot = await uploadBytes(storageRef, file, metadata);
+    console.log('✅ Imagen subida exitosamente:', snapshot.metadata.fullPath);
 
     const downloadURL = await getDownloadURL(snapshot.ref);
     console.log('✅ URL de descarga obtenida:', downloadURL);
+
+    // 2. Delete the old image after successful upload
+    if (currentPhotoURL && currentPhotoURL.includes('firebasestorage.googleapis.com')) {
+      try {
+        // Extract the storage path from the download URL
+        const url = new URL(currentPhotoURL);
+        const pathMatch = url.pathname.match(/\/o\/(.*?)\?/);
+        if (pathMatch && pathMatch[1]) {
+          const storagePath = decodeURIComponent(pathMatch[1]);
+          const oldImageRef = ref(storage, storagePath);
+          await deleteObject(oldImageRef);
+          console.log('✅ Antigua imagen eliminada:', storagePath);
+        }
+      } catch (deleteError: any) {
+        // Don't fail the entire operation if old image deletion fails
+        console.warn('⚠️ No se pudo eliminar la imagen anterior:', deleteError.message);
+      }
+    }
+
     return downloadURL;
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Error al subir imagen de perfil:', error);
+    
+    // Provide more specific error messages
+    if (error.code === 'storage/unauthorized') {
+      throw new Error('No tienes permisos para subir imágenes. Verifica las reglas de Firebase Storage.');
+    } else if (error.code === 'storage/canceled') {
+      throw new Error('La subida fue cancelada.');
+    } else if (error.code === 'storage/unknown') {
+      throw new Error('Error desconocido al subir la imagen. Intenta nuevamente.');
+    }
+    
     throw error;
   }
 };
