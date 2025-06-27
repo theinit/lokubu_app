@@ -21,6 +21,8 @@ export const experiences: Experience[] = [
     rating: 4.9,
     category: ExperienceCategory.GASTRONOMY,
     duration: 180, // 3 hours
+    maxAttendees: 8,
+    currentAttendees: 3,
     availability: {
       '2024-08-15': ['11:00', '17:00'],
       '2024-08-16': ['11:00'],
@@ -42,6 +44,8 @@ export const experiences: Experience[] = [
     rating: 4.8,
     category: ExperienceCategory.CULTURE,
     duration: 120,
+    maxAttendees: 12,
+    currentAttendees: 10,
     availability: {
       '2024-08-20': ['09:00', '13:00'],
       '2024-08-21': ['09:00'],
@@ -62,6 +66,8 @@ export const experiences: Experience[] = [
     rating: 5.0,
     category: ExperienceCategory.ADVENTURE,
     duration: 240,
+    maxAttendees: 6,
+    currentAttendees: 6,
     availability: {
       '2024-09-01': ['10:00'],
       '2024-09-03': ['10:00'],
@@ -83,6 +89,8 @@ export const experiences: Experience[] = [
     rating: 4.9,
     category: ExperienceCategory.NATURE,
     duration: 210,
+    maxAttendees: 15,
+    currentAttendees: 2,
     availability: {
       '2024-09-10': ['05:00'],
       '2024-09-12': ['05:00'],
@@ -103,6 +111,8 @@ export const experiences: Experience[] = [
     rating: 4.7,
     category: ExperienceCategory.HISTORY,
     duration: 150,
+    maxAttendees: 20,
+    currentAttendees: 18,
     availability: {
       '2024-08-25': ['09:30', '14:00'],
       '2024-08-26': ['09:30'],
@@ -123,6 +133,8 @@ export const experiences: Experience[] = [
     rating: 4.9,
     category: ExperienceCategory.GASTRONOMY,
     duration: 180,
+    maxAttendees: 10,
+    currentAttendees: 7,
     availability: {
       '2024-09-11': ['18:00', '19:00'],
       '2024-09-13': ['18:00', '19:00'],
@@ -142,6 +154,8 @@ export const experiences: Experience[] = [
     rating: 4.8,
     category: ExperienceCategory.NATURE,
     duration: 120,
+    maxAttendees: 8,
+    currentAttendees: 1,
     availability: {
         '2024-08-20': ['21:00', '22:00'],
         '2024-08-22': ['21:00', '22:00'],
@@ -161,6 +175,8 @@ export const experiences: Experience[] = [
     rating: 4.8,
     category: ExperienceCategory.CULTURE,
     duration: 150,
+    maxAttendees: 25,
+    currentAttendees: 5,
     availability: {
       '2024-09-01': ['10:00', '14:00'],
       '2024-09-02': ['10:00', '14:00'],

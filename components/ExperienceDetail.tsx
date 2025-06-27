@@ -46,6 +46,14 @@ const ExperienceDetail: React.FC<ExperienceDetailProps> = ({ experience, onBack 
           setBookingMessage("Por favor, selecciona primero una fecha y hora disponibles.");
           return;
       }
+      
+      // Check if experience is at capacity
+      if (experience.currentAttendees >= experience.maxAttendees) {
+          setBookingMessage("Lo sentimos, esta experiencia ya está completa. No hay plazas disponibles.");
+          setTimeout(() => setBookingMessage(null), 5000);
+          return;
+      }
+      
       // Simulate booking
       setBookingMessage(`¡Reserva confirmada para el ${selectedDate} a las ${selectedTime}! Se ha enviado una confirmación.`);
       setTimeout(() => setBookingMessage(null), 5000);
@@ -89,6 +97,27 @@ const ExperienceDetail: React.FC<ExperienceDetailProps> = ({ experience, onBack 
                         <span className="font-semibold">{formatDuration(experience.duration)}</span>
                     </div>
                  </div>
+                 
+                 <div className="bg-gray-700/50 p-3 rounded-lg mb-4">
+                    <div className="flex justify-between items-center">
+                        <span className="text-gray-300 text-sm">Plazas disponibles:</span>
+                        <span className={`font-semibold ${
+                            experience.currentAttendees >= experience.maxAttendees 
+                                ? 'text-red-400' 
+                                : experience.maxAttendees - experience.currentAttendees <= 3 
+                                    ? 'text-yellow-400' 
+                                    : 'text-green-400'
+                        }`}>
+                            {experience.maxAttendees - experience.currentAttendees} de {experience.maxAttendees}
+                        </span>
+                    </div>
+                    {experience.currentAttendees >= experience.maxAttendees && (
+                        <p className="text-red-400 text-xs mt-1">Experiencia completa</p>
+                    )}
+                    {experience.maxAttendees - experience.currentAttendees <= 3 && experience.currentAttendees < experience.maxAttendees && (
+                        <p className="text-yellow-400 text-xs mt-1">¡Últimas plazas!</p>
+                    )}
+                 </div>
                 
                  {currentUser ? (
                     currentUser.id === experience.host.id ? (
@@ -122,8 +151,12 @@ const ExperienceDetail: React.FC<ExperienceDetailProps> = ({ experience, onBack 
                                 </div>
                             )}
 
-                            <button onClick={handleBooking} disabled={!selectedDate || !selectedTime} className="w-full mt-4 bg-teal-600 text-white font-bold py-3 px-4 rounded-md hover:bg-teal-700 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors">
-                                Reservar Ahora
+                            <button 
+                                onClick={handleBooking} 
+                                disabled={!selectedDate || !selectedTime || experience.currentAttendees >= experience.maxAttendees} 
+                                className="w-full mt-4 bg-teal-600 text-white font-bold py-3 px-4 rounded-md hover:bg-teal-700 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
+                            >
+                                {experience.currentAttendees >= experience.maxAttendees ? 'Experiencia Completa' : 'Reservar Ahora'}
                             </button>
                             {bookingMessage && <p className={`mt-3 text-sm text-center ${bookingMessage.includes("confirmada") ? 'text-green-400' : 'text-yellow-400'}`}>{bookingMessage}</p>}
                         </div>

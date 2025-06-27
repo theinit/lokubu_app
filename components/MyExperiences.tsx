@@ -1,21 +1,49 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Experience, AppView } from '../types';
-import ExperienceCard from './ExperienceCard';
+import MyExperienceCard from './MyExperienceCard';
 
 interface MyExperiencesProps {
   allExperiences: Experience[];
   onNavigate: (view: AppView) => void;
   onViewExperience: (experience: Experience) => void;
+  onEditExperience: (experience: Experience) => void;
+  onDeleteExperience: (experienceId: string) => void;
 }
 
-const MyExperiences: React.FC<MyExperiencesProps> = ({ allExperiences, onNavigate, onViewExperience }) => {
+const MyExperiences: React.FC<MyExperiencesProps> = ({ 
+  allExperiences, 
+  onNavigate, 
+  onViewExperience, 
+  onEditExperience, 
+  onDeleteExperience 
+}) => {
   const { currentUser } = useAuth();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [experienceToDelete, setExperienceToDelete] = useState<Experience | null>(null);
 
   const myExperiences = useMemo(() => {
     if (!currentUser) return [];
     return allExperiences.filter(exp => exp.host.id === currentUser.id);
   }, [allExperiences, currentUser]);
+
+  const handleDeleteClick = (experience: Experience) => {
+    setExperienceToDelete(experience);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (experienceToDelete) {
+      onDeleteExperience(experienceToDelete.id);
+      setShowDeleteModal(false);
+      setExperienceToDelete(null);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+    setExperienceToDelete(null);
+  };
   
   return (
     <div className="animate-fade-in">
@@ -40,7 +68,13 @@ const MyExperiences: React.FC<MyExperiencesProps> = ({ allExperiences, onNavigat
       {myExperiences.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
           {myExperiences.map(exp => (
-            <ExperienceCard key={exp.id} experience={exp} onViewExperience={onViewExperience} />
+            <MyExperienceCard 
+              key={exp.id} 
+              experience={exp} 
+              onViewExperience={onViewExperience}
+              onEditExperience={onEditExperience}
+              onDeleteExperience={handleDeleteClick}
+            />
           ))}
         </div>
       ) : (
@@ -61,6 +95,33 @@ const MyExperiences: React.FC<MyExperiencesProps> = ({ allExperiences, onNavigat
               </svg>
               Crear Experiencia
             </button>
+          </div>
+        </div>
+      )}
+      
+      {/* Modal de confirmación de eliminación */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 border border-gray-700">
+            <h3 className="text-lg font-semibold text-white mb-4">Confirmar Eliminación</h3>
+            <p className="text-gray-300 mb-6">
+              ¿Estás seguro de que quieres eliminar la experiencia "{experienceToDelete?.title}"? 
+              Esta acción no se puede deshacer.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={handleCancelDelete}
+                className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              >
+                Eliminar
+              </button>
+            </div>
           </div>
         </div>
       )}

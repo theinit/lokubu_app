@@ -15,7 +15,7 @@ export const generateTravelPlan = async (userInput: string): Promise<AITravelPla
       },
     });
 
-    let jsonStr = response.text.trim();
+    let jsonStr = response.text?.trim() || '';
     const fenceRegex = /^```(\w*)?\s*\n?(.*?)\n?\s*```$/s;
     const match = jsonStr.match(fenceRegex);
     if (match && match[2]) {
@@ -36,5 +36,39 @@ export const generateTravelPlan = async (userInput: string): Promise<AITravelPla
         throw new Error(`There was an issue generating your travel plan: ${error.message}`);
     }
     throw new Error("An unknown error occurred while generating the travel plan.");
+  }
+};
+
+export const generateExperienceImage = async (title: string, description: string, location: string): Promise<string> => {
+  const prompt = `Generate a beautiful, high-quality image for a travel experience with the following details:
+  Title: ${title}
+  Description: ${description}
+  Location: ${location}
+  
+  The image should be vibrant, inviting, and capture the essence of this local experience. It should be suitable for use as a thumbnail in a travel platform.`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash-preview-04-17",
+      contents: [{
+        role: "user",
+        parts: [{
+          text: prompt
+        }]
+      }]
+    });
+
+    // For now, we'll return a placeholder URL since Gemini doesn't generate actual images
+    // In a real implementation, you would use a service like DALL-E, Midjourney, or Stable Diffusion
+    const imagePrompt = response.text?.trim() || '';
+    
+    // Generate a unique placeholder image URL based on the content
+    const hash = btoa(encodeURIComponent(title + description + location)).replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);
+    return `https://picsum.photos/400/300?random=${hash}`;
+    
+  } catch (error) {
+    console.error("Failed to generate experience image:", error);
+    // Return a default placeholder image
+    return "https://picsum.photos/400/300?random=default";
   }
 };

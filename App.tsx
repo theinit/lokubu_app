@@ -7,10 +7,11 @@ import AITravelPlanner from './components/AITravelPlanner';
 import LoginModal from './components/LoginModal';
 import RegisterModal from './components/RegisterModal';
 import CreateExperience from './components/CreateExperience';
+import EditExperience from './components/EditExperience';
 import MyExperiences from './components/MyExperiences';
 import ExperienceDetail from './components/ExperienceDetail';
 import MapComponent from './components/MapComponent';
-import { getExperiences, createExperience as apiCreateExperience } from './services/firestoreService';
+import { getExperiences, createExperience as apiCreateExperience, updateExperience, deleteExperience } from './services/firestoreService';
 import { Experience, ExperienceCategory, AppView } from './types';
 import { useAuth } from './contexts/AuthContext';
 
@@ -26,6 +27,7 @@ const App: React.FC = () => {
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
   const [view, setView] = useState<AppView>('home');
   const [selectedExperience, setSelectedExperience] = useState<Experience | null>(null);
+  const [editingExperience, setEditingExperience] = useState<Experience | null>(null);
   const { currentUser } = useAuth();
 
   useEffect(() => {
@@ -61,6 +63,39 @@ const App: React.FC = () => {
     }
   }, [currentUser]);
 
+  const handleEditExperience = useCallback(async (experienceId: string, updatedData: Partial<Experience>) => {
+    if (!currentUser) {
+        alert("Debes estar logueado para editar una experiencia.");
+        return;
+    }
+
+    try {
+        await updateExperience(experienceId, updatedData);
+        setExperiences(prev => prev.map(exp => 
+            exp.id === experienceId ? { ...exp, ...updatedData } : exp
+        ));
+        setView('my-experiences');
+    } catch (error) {
+        console.error("Failed to update experience:", error);
+        alert("Hubo un error al actualizar tu experiencia. Por favor intenta de nuevo.");
+    }
+  }, [currentUser]);
+
+  const handleDeleteExperience = useCallback(async (experienceId: string) => {
+    if (!currentUser) {
+        alert("Debes estar logueado para eliminar una experiencia.");
+        return;
+    }
+
+    try {
+        await deleteExperience(experienceId);
+        setExperiences(prev => prev.filter(exp => exp.id !== experienceId));
+    } catch (error) {
+        console.error("Failed to delete experience:", error);
+        alert("Hubo un error al eliminar tu experiencia. Por favor intenta de nuevo.");
+    }
+  }, [currentUser]);
+
   const handleViewExperience = useCallback((experience: Experience) => {
     setSelectedExperience(experience);
     setView('detail');
@@ -69,8 +104,14 @@ const App: React.FC = () => {
   const handleNavigate = useCallback((newView: AppView) => {
       if (newView === 'home') {
           setSelectedExperience(null);
+          setEditingExperience(null);
       }
       setView(newView);
+  }, []);
+
+  const handleStartEditExperience = useCallback((experience: Experience) => {
+    setEditingExperience(experience);
+    setView('edit');
   }, []);
 
   const filteredExperiences = useMemo(() => {
@@ -132,8 +173,24 @@ const App: React.FC = () => {
     switch (view) {
       case 'create':
         return <CreateExperience onSubmit={handleCreateExperience} onBack={() => handleNavigate('my-experiences')} />;
+      case 'edit':
+        return editingExperience ? (
+          <EditExperience 
+            experience={editingExperience} 
+            onSubmit={(updatedData) => handleEditExperience(editingExperience.id, updatedData)} 
+            onBack={() => handleNavigate('my-experiences')} 
+          />
+        ) : renderHomeView();
       case 'my-experiences':
-        return <MyExperiences allExperiences={experiences} onNavigate={handleNavigate} onViewExperience={handleViewExperience}/>;
+        return (
+          <MyExperiences 
+            allExperiences={experiences} 
+            onNavigate={handleNavigate} 
+            onViewExperience={handleViewExperience}
+            onEditExperience={handleStartEditExperience}
+            onDeleteExperience={handleDeleteExperience}
+          />
+        );
       case 'detail':
         return selectedExperience ? <ExperienceDetail experience={selectedExperience} onBack={() => handleNavigate('home')} /> : renderHomeView();
       case 'home':

@@ -161,3 +161,24 @@ export const createExperience = async (experienceData: ExperienceData, host: Use
         ...newExperienceDocData
     } as Experience;
   };
+
+/**
+ * Updates an existing experience in Firestore.
+ * @param experienceId The ID of the experience to update.
+ * @param experienceData The updated experience data.
+ * @returns A promise that resolves when the experience is updated.
+ */
+export const updateExperience = async (experienceId: string, experienceData: Partial<Experience>): Promise<void> => {
+  const experienceRef = doc(db, "experiences", experienceId);
+  await updateDoc(experienceRef, experienceData);
+};
+
+/**
+ * Deletes an experience from Firestore.
+ * @param experienceId The ID of the experience to delete.
+ * @returns A promise that resolves when the experience is deleted.
+ */
+export const deleteExperience = async (experienceId: string): Promise<void> => {
+  const experienceRef = doc(db, "experiences", experienceId);
+  await deleteDoc(experienceRef);
+};

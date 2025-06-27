@@ -28,6 +28,8 @@ export interface Experience {
   category: ExperienceCategory;
   availability: { [date: string]: string[] }; // Map of YYYY-MM-DD -> ['HH:MM', 'HH:MM']
   duration: number; // Duration in minutes
+  maxAttendees: number; // Número máximo de asistentes
+  currentAttendees: number; // Número actual de asistentes registrados
 }
 
 export interface AITravelActivity {
@@ -53,4 +55,4 @@ export interface User {
   email: string;
 }
 
-export type AppView = 'home' | 'create' | 'my-experiences' | 'detail';
+export type AppView = 'home' | 'create' | 'my-experiences' | 'detail' | 'edit';
