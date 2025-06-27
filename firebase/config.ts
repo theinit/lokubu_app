@@ -1,19 +1,22 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getFirestore } from 'firebase/firestore';
 
-// =================================================================
-// IMPORTANTE: RELLENA ESTO CON LAS CREDENCIALES DE TU PROYECTO FIREBASE
-// Puedes encontrar esta información en la configuración de tu proyecto en la consola de Firebase.
-// =================================================================
+// Configuración de Firebase usando variables de entorno
+// Las credenciales se obtienen del archivo .env.local
 const firebaseConfig = {
-  apiKey: "AIzaSyD_QIyh9qOwTAqxPlWxwe9buDvlIo_oDfc",
-  authDomain: "lokubu-b5d9f.firebaseapp.com",
-  projectId: "lokubu-b5d9f",
-  storageBucket: "lokubu-b5d9f.appspot.com",
-  messagingSenderId: "311807545912",
-  appId: "1:311807545912:web:377c33f53a2f7023f44cc"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
+
+// Validar que todas las variables de entorno estén configuradas
+if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.projectId) {
+  throw new Error('❌ Faltan variables de entorno de Firebase. Verifica tu archivo .env.local');
+}
 
 // Initialize Firebase using the v9+ modular syntax
 const app = initializeApp(firebaseConfig);
