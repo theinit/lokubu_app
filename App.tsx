@@ -1,9 +1,8 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import ExperienceCard from './components/ExperienceCard';
 import SearchBar from './components/SearchBar';
-import AITravelPlanner from './components/AITravelPlanner';
 import LoginModal from './components/LoginModal';
 import RegisterModal from './components/RegisterModal';
 import EditProfileModal from './components/EditProfileModal'; // Importar el nuevo modal
@@ -12,6 +11,7 @@ import EditExperience from './components/EditExperience';
 import MyExperiences from './components/MyExperiences';
 import ExperienceDetail from './components/ExperienceDetail';
 import MapComponent from './components/MapComponent';
+import HomePage from './components/HomePage';
 import { getExperiences, createExperience as apiCreateExperience, updateExperience, deleteExperience } from './services/firestoreService';
 import { Experience, ExperienceCategory, AppView } from './types';
 import { useAuth } from './contexts/AuthContext';
@@ -26,7 +26,7 @@ const App: React.FC = () => {
   const [locationFilter, setLocationFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<ExperienceCategory>(ExperienceCategory.ALL);
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
-  const [view, setView] = useState<AppView>('home');
+  const [view, setView] = useState<AppView>('landing');
   const [selectedExperience, setSelectedExperience] = useState<Experience | null>(null);
   const [editingExperience, setEditingExperience] = useState<Experience | null>(null);
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false); // Estado para el modal de edición de perfil
@@ -116,6 +116,11 @@ const App: React.FC = () => {
     setView('edit');
   }, []);
 
+  const handleSearch = useCallback((location: string) => {
+    setLocationFilter(location);
+    setView('home');
+  }, []);
+
   const filteredExperiences = useMemo(() => {
     return experiences.filter(exp => {
       const matchesLocation = exp.location.toLowerCase().includes(locationFilter.toLowerCase());
@@ -126,12 +131,10 @@ const App: React.FC = () => {
   
   const renderHomeView = () => (
     <>
-      <AITravelPlanner />
-      
       <div className="mt-12">
         <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl mb-2">Descubre Experiencias en el Mapa</h2>
         <p className="text-xl text-gray-300 mb-6">Encuentra tu próxima aventura explorando las actividades cercanas a ti.</p>
-        <div className="h-[500px] w-full bg-gray-800 rounded-lg shadow-lg border border-gray-700 mb-12">
+        <div className="h-[500px] w-full bg-gray-800 rounded-lg shadow-lg border border-gray-700 mb-12 relative z-0">
             <MapComponent experiences={filteredExperiences} onViewExperience={handleViewExperience} />
         </div>
       </div>
@@ -173,6 +176,14 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     switch (view) {
+      case 'landing':
+        return (
+          <HomePage 
+            onSearch={handleSearch}
+            onOpenLogin={() => setActiveModal('login')}
+            onOpenRegister={() => setActiveModal('register')}
+          />
+        );
       case 'create':
         return <CreateExperience onSubmit={handleCreateExperience} onBack={() => handleNavigate('my-experiences')} />;
       case 'edit':
@@ -194,12 +205,30 @@ const App: React.FC = () => {
           />
         );
       case 'detail':
-        return selectedExperience ? <ExperienceDetail experience={selectedExperience} onBack={() => handleNavigate('home')} /> : renderHomeView();
+        return selectedExperience ? <ExperienceDetail experience={selectedExperience} onBack={() => handleNavigate(currentUser ? 'home' : 'landing')} /> : renderHomeView();
       case 'home':
       default:
         return renderHomeView();
     }
   };
+
+  if (view === 'landing') {
+    return (
+      <>
+        {renderContent()}
+        <LoginModal 
+          isOpen={activeModal === 'login'}
+          onClose={() => setActiveModal(null)}
+          onSwitchToRegister={() => setActiveModal('register')}
+        />
+        <RegisterModal
+          isOpen={activeModal === 'register'}
+          onClose={() => setActiveModal(null)}
+          onSwitchToLogin={() => setActiveModal('login')}
+        />
+      </>
+    );
+  }
 
   return (
     <>

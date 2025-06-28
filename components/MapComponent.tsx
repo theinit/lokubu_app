@@ -16,27 +16,90 @@ interface MapComponentProps {
     onViewExperience: (experience: Experience) => void;
 }
 
+const MapResizer: React.FC = () => {
+    const map = useMap();
+    
+    useEffect(() => {
+        // Forzar invalidateSize después del montaje para corregir problemas de renderizado
+        const timer = setTimeout(() => {
+            map.invalidateSize();
+        }, 100);
+        
+        // También invalidar en resize de ventana
+        const handleResize = () => {
+            map.invalidateSize();
+        };
+        
+        window.addEventListener('resize', handleResize);
+        
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('resize', handleResize);
+        };
+    }, [map]);
+    
+    return null;
+};
+
 const LocationMarker: React.FC<{ setPosition: (pos: L.LatLng) => void }> = ({ setPosition }) => {
     const map = useMap();
+    
     useEffect(() => {
-        map.locate().on("locationfound", function (e) {
-            setPosition(e.latlng);
-            map.flyTo(e.latlng, 13);
+        let isLocationFound = false;
+        
+        const onLocationFound = (e: L.LocationEvent) => {
+            if (!isLocationFound) {
+                isLocationFound = true;
+                setPosition(e.latlng);
+                // Usar setView en lugar de flyTo para un posicionamiento más preciso
+                map.setView(e.latlng, 13);
+                // Invalidar tamaño después de cambiar la vista
+                setTimeout(() => map.invalidateSize(), 100);
+            }
+        };
+        
+        const onLocationError = () => {
+            console.log('No se pudo obtener la ubicación del usuario');
+        };
+        
+        // Configurar opciones de geolocalización
+        map.locate({ 
+            setView: false, // No permitir que locate() cambie la vista automáticamente
+            maxZoom: 13,
+            timeout: 10000,
+            enableHighAccuracy: true
         });
+        
+        map.on('locationfound', onLocationFound);
+        map.on('locationerror', onLocationError);
+        
+        // Cleanup
+        return () => {
+            map.off('locationfound', onLocationFound);
+            map.off('locationerror', onLocationError);
+        };
     }, [map, setPosition]);
+    
     return null;
 };
 
 const MapComponent: React.FC<MapComponentProps> = ({ experiences, onViewExperience }) => {
     const [position, setPosition] = useState<L.LatLng | null>(null);
-    const initialPosition: L.LatLngExpression = [51.505, -0.09]; // Default position
+    const initialPosition: L.LatLngExpression = [40.4168, -3.7038]; // Madrid como posición por defecto
 
     return (
-        <MapContainer center={position || initialPosition} zoom={position ? 13 : 5} style={{ height: '100%', width: '100%', borderRadius: '0.5rem' }} scrollWheelZoom={true}>
+        <MapContainer 
+            center={initialPosition} 
+            zoom={6} 
+            style={{ height: '100%', width: '100%', borderRadius: '0.5rem' }} 
+            scrollWheelZoom={true}
+            zoomControl={true}
+        >
             <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
+            <MapResizer />
             <LocationMarker setPosition={setPosition} />
             {experiences.map(exp => (
                 <Marker key={exp.id} position={[exp.latitude, exp.longitude]}>

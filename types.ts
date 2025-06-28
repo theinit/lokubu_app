@@ -59,4 +59,4 @@ export interface User {
   photoURL?: string;
 }
 
-export type AppView = 'home' | 'create' | 'my-experiences' | 'detail' | 'edit' | 'edit-profile';
+export type AppView = 'landing' | 'home' | 'create' | 'my-experiences' | 'detail' | 'edit' | 'edit-profile';
