@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Experience } from '../types';
 import { useAuth } from '../contexts/AuthContext';
+import { getBookedTimeSlots, getAvailableSpots } from '../services/firestoreService';
 import Calendar from './Calendar';
 import BookingForm from './BookingForm';
 
@@ -36,11 +37,46 @@ const ExperienceDetail: React.FC<ExperienceDetailProps> = ({ experience, onBack 
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [bookingMessage, setBookingMessage] = useState<string | null>(null);
   const [showBookingForm, setShowBookingForm] = useState(false);
+  const [bookedTimeSlots, setBookedTimeSlots] = useState<string[]>([]);
+  const [loadingTimeSlots, setLoadingTimeSlots] = useState(false);
+  const [availableSpotsForSelectedTime, setAvailableSpotsForSelectedTime] = useState<number | null>(null);
+
+  // Load booked time slots for a specific date
+  const loadBookedTimeSlots = async (date: string) => {
+    try {
+      setLoadingTimeSlots(true);
+      const bookedTimes = await getBookedTimeSlots(experience.id, date);
+      setBookedTimeSlots(bookedTimes);
+    } catch (error) {
+      console.error('Error loading booked time slots:', error);
+      setBookedTimeSlots([]);
+    } finally {
+      setLoadingTimeSlots(false);
+    }
+  };
+
+  // Load available spots for a specific time slot
+  const loadAvailableSpots = async (date: string, time: string) => {
+    try {
+      const spots = await getAvailableSpots(experience.id, date, time);
+      setAvailableSpotsForSelectedTime(spots);
+    } catch (error) {
+      console.error('Error loading available spots:', error);
+      setAvailableSpotsForSelectedTime(0);
+    }
+  };
 
   const handleDateSelection = (dates: string[]) => {
       const newDate = dates[0] || null;
       setSelectedDate(newDate);
       setSelectedTime(null); // Reset time when date changes
+      setBookedTimeSlots([]); // Reset booked slots
+      setAvailableSpotsForSelectedTime(null); // Reset available spots
+      
+      // Load booked time slots for the new date
+      if (newDate) {
+        loadBookedTimeSlots(newDate);
+      }
   };
 
   const handleBooking = () => {
@@ -49,9 +85,9 @@ const ExperienceDetail: React.FC<ExperienceDetailProps> = ({ experience, onBack 
           return;
       }
       
-      // Check if experience is at capacity
-      if(experience.currentAttendees >= experience.maxAttendees) {
-          setBookingMessage("Lo sentimos, esta experiencia ya está completa. No hay plazas disponibles.");
+      // Check if the selected time slot has available spots
+      if(availableSpotsForSelectedTime !== null && availableSpotsForSelectedTime <= 0) {
+          setBookingMessage("Lo sentimos, este horario ya está completo. No hay plazas disponibles.");
           setTimeout(() => setBookingMessage(null), 5000);
           return;
       }
@@ -62,7 +98,12 @@ const ExperienceDetail: React.FC<ExperienceDetailProps> = ({ experience, onBack 
   const handleBookingCreated = () => {
       setBookingMessage("¡Reserva creada exitosamente! El anfitrión recibirá tu solicitud.");
       setTimeout(() => setBookingMessage(null), 5000);
-      setSelectedDate(null);
+      
+      // Reload booked time slots for the current date to reflect the new booking
+      if (selectedDate) {
+        loadBookedTimeSlots(selectedDate);
+      }
+      
       setSelectedTime(null);
   }
 
@@ -107,22 +148,36 @@ const ExperienceDetail: React.FC<ExperienceDetailProps> = ({ experience, onBack 
                  
                  <div className="bg-gray-700/50 p-3 rounded-lg mb-4">
                     <div className="flex justify-between items-center">
-                        <span className="text-gray-300 text-sm">Plazas disponibles:</span>
+                        <span className="text-gray-300 text-sm">
+                            {selectedDate && selectedTime ? 'Plazas para este horario:' : 'Máximo de asistentes:'}
+                        </span>
                         <span className={`font-semibold ${
-                            experience.currentAttendees >= experience.maxAttendees 
-                                ? 'text-red-400' 
-                                : experience.maxAttendees - experience.currentAttendees <= 3 
-                                    ? 'text-yellow-400' 
-                                    : 'text-green-400'
+                            selectedDate && selectedTime && availableSpotsForSelectedTime !== null
+                                ? availableSpotsForSelectedTime <= 0
+                                    ? 'text-red-400'
+                                    : availableSpotsForSelectedTime <= 3
+                                        ? 'text-yellow-400'
+                                        : 'text-green-400'
+                                : 'text-blue-400'
                         }`}>
-                            {experience.maxAttendees - experience.currentAttendees} de {experience.maxAttendees}
+                            {selectedDate && selectedTime && availableSpotsForSelectedTime !== null
+                                ? `${availableSpotsForSelectedTime} de ${experience.maxAttendees}`
+                                : `${experience.maxAttendees} personas máximo`
+                            }
                         </span>
                     </div>
-                    {experience.currentAttendees >= experience.maxAttendees && (
-                        <p className="text-red-400 text-xs mt-1">Experiencia completa</p>
+                    {selectedDate && selectedTime && availableSpotsForSelectedTime !== null && (
+                        <>
+                            {availableSpotsForSelectedTime <= 0 && (
+                                <p className="text-red-400 text-xs mt-1">Horario completo</p>
+                            )}
+                            {availableSpotsForSelectedTime > 0 && availableSpotsForSelectedTime <= 3 && (
+                                <p className="text-yellow-400 text-xs mt-1">¡Últimas plazas para este horario!</p>
+                            )}
+                        </>
                     )}
-                    {experience.maxAttendees - experience.currentAttendees <= 3 && experience.currentAttendees < experience.maxAttendees && (
-                        <p className="text-yellow-400 text-xs mt-1">¡Últimas plazas!</p>
+                    {(!selectedDate || !selectedTime) && (
+                        <p className="text-gray-400 text-xs mt-1">Selecciona fecha y hora para ver disponibilidad específica</p>
                     )}
                  </div>
                 
@@ -141,16 +196,37 @@ const ExperienceDetail: React.FC<ExperienceDetailProps> = ({ experience, onBack 
                                 <div className="mt-4 animate-fade-in">
                                     <h4 className="text-md font-semibold text-white mb-2">Selecciona una hora:</h4>
                                     <div className="flex flex-wrap gap-2">
-                                        {experience.availability[selectedDate] && experience.availability[selectedDate].length > 0 ? (
-                                            experience.availability[selectedDate].map(time => (
-                                                <button 
-                                                    key={time}
-                                                    onClick={() => setSelectedTime(time)}
-                                                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${selectedTime === time ? 'bg-teal-500 text-white shadow-lg' : 'bg-gray-700 text-gray-200 hover:bg-gray-600'}`}
-                                                >
-                                                    {time}
-                                                </button>
-                                            ))
+                                        {loadingTimeSlots ? (
+                                            <p className="text-sm text-gray-400">Cargando horarios...</p>
+                                        ) : experience.availability[selectedDate] && experience.availability[selectedDate].length > 0 ? (
+                                            experience.availability[selectedDate].map(time => {
+                                                const isBooked = bookedTimeSlots.includes(time);
+                                                return (
+                                                    <button 
+                                                        key={time}
+                                                        onClick={() => {
+                                                            if (!isBooked) {
+                                                                setSelectedTime(time);
+                                                                loadAvailableSpots(selectedDate, time);
+                                                            }
+                                                        }}
+                                                        disabled={isBooked}
+                                                        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors relative ${
+                                                            isBooked 
+                                                                ? 'bg-red-600 text-red-200 cursor-not-allowed opacity-75' 
+                                                                : selectedTime === time 
+                                                                    ? 'bg-teal-500 text-white shadow-lg' 
+                                                                    : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                                                        }`}
+                                                        title={isBooked ? 'Este horario ya está reservado' : ''}
+                                                    >
+                                                        {time}
+                                                        {isBooked && (
+                                                            <span className="ml-1 text-xs">✗</span>
+                                                        )}
+                                                    </button>
+                                                );
+                                            })
                                         ) : (
                                             <p className="text-sm text-gray-400">No hay horas disponibles para este día.</p>
                                         )}
@@ -160,10 +236,10 @@ const ExperienceDetail: React.FC<ExperienceDetailProps> = ({ experience, onBack 
 
                             <button 
                                 onClick={handleBooking} 
-                                disabled={!selectedDate || !selectedTime || experience.currentAttendees >= experience.maxAttendees} 
+                                disabled={!selectedDate || !selectedTime || (availableSpotsForSelectedTime !== null && availableSpotsForSelectedTime <= 0)} 
                                 className="w-full mt-4 bg-teal-600 text-white font-bold py-3 px-4 rounded-md hover:bg-teal-700 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
                             >
-                                {experience.currentAttendees >= experience.maxAttendees ? 'Experiencia Completa' : 'Reservar Ahora'}
+                                {availableSpotsForSelectedTime !== null && availableSpotsForSelectedTime <= 0 ? 'Horario Completo' : 'Reservar Ahora'}
                             </button>
                             {bookingMessage && <p className={`mt-3 text-sm text-center ${bookingMessage.includes("confirmada") ? 'text-green-400' : 'text-yellow-400'}`}>{bookingMessage}</p>}
                         </div>

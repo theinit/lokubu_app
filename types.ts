@@ -59,7 +59,7 @@ export interface User {
   photoURL?: string;
 }
 
-export type AppView = 'landing' | 'home' | 'create' | 'my-experiences' | 'detail' | 'edit' | 'edit-profile' | 'bookings' | 'host-bookings';
+export type AppView = 'main' | 'create' | 'my-experiences' | 'detail' | 'edit' | 'edit-profile' | 'bookings' | 'host-bookings';
 
 export enum BookingStatus {
   PENDING = "pending",

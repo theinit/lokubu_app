@@ -67,9 +67,14 @@ const BookingForm: React.FC<BookingFormProps> = ({ experience, selectedDate = ''
       
       onBookingCreated();
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error creating booking:', err);
-      setError('No se pudo crear la reserva. Inténtalo de nuevo.');
+      // Show specific error message if it's an availability issue
+      if (err.message && err.message.includes('ya no está disponible')) {
+        setError(err.message);
+      } else {
+        setError('No se pudo crear la reserva. Inténtalo de nuevo.');
+      }
     } finally {
       setLoading(false);
     }

@@ -47,7 +47,7 @@ const MyExperiences: React.FC<MyExperiencesProps> = ({
   
   return (
     <div className="animate-fade-in">
-       <button onClick={() => onNavigate('home')} className="mb-6 inline-flex items-center text-sm font-medium text-gray-400 hover:text-white">
+       <button onClick={() => onNavigate('main')} className="mb-6 inline-flex items-center text-sm font-medium text-gray-400 hover:text-white">
         <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
         Volver a Explorar
       </button>

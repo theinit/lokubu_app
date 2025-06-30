@@ -136,8 +136,19 @@ export const getUserProfile = async (uid:string): Promise<User | null> => {
 export const updateUserProfile = async (uid: string, updatedData: Partial<User>): Promise<void> => {
   try {
     console.log('🔄 Actualizando perfil de usuario en Firestore:', uid, updatedData);
+    
+    // Filtrar campos undefined para evitar errores de Firebase
+    const cleanedData: Record<string, any> = {};
+    Object.entries(updatedData).forEach(([key, value]) => {
+      if (value !== undefined) {
+        cleanedData[key] = value;
+      }
+    });
+    
+    console.log('🧹 Datos limpiados (sin undefined):', cleanedData);
+    
     const userDocRef = doc(db, 'users', uid);
-    await updateDoc(userDocRef, updatedData);
+    await updateDoc(userDocRef, cleanedData);
     console.log('✅ Perfil de usuario actualizado exitosamente en Firestore');
   } catch (error: any) {
     console.error('❌ Error al actualizar perfil de usuario en Firestore:', error);
@@ -302,12 +313,138 @@ export const deleteExperience = async (experienceId: string): Promise<void> => {
 // --- BOOKING-RELATED FUNCTIONS ---
 
 /**
+ * Gets all booked time slots for a specific experience and date.
+ * @param experienceId The experience ID.
+ * @param date The date in YYYY-MM-DD format.
+ * @returns A promise that resolves with an array of booked times.
+ */
+/**
+ * Gets the total participants for a specific time slot.
+ * @param experienceId The experience ID.
+ * @param date The date in YYYY-MM-DD format.
+ * @param time The time in HH:MM format.
+ * @returns A promise that resolves with the total number of participants.
+ */
+export const getTimeSlotParticipants = async (experienceId: string, date: string, time: string): Promise<number> => {
+  try {
+    const bookingsRef = collection(db, 'bookings');
+    const q = query(
+      bookingsRef,
+      where('experienceId', '==', experienceId),
+      where('date', '==', date),
+      where('time', '==', time),
+      where('status', 'in', [BookingStatus.PENDING, BookingStatus.CONFIRMED])
+    );
+    
+    const querySnapshot = await getDocs(q);
+    let totalParticipants = 0;
+    
+    querySnapshot.forEach((doc) => {
+      const booking = doc.data() as Booking;
+      totalParticipants += booking.participants;
+    });
+    
+    console.log(`🔍 Participantes para ${experienceId} el ${date} a las ${time}:`, totalParticipants);
+    
+    return totalParticipants;
+  } catch (error) {
+    console.error('❌ Error al obtener participantes del horario:', error);
+    throw error;
+  }
+};
+
+export const getBookedTimeSlots = async (experienceId: string, date: string): Promise<string[]> => {
+  try {
+    // Get the experience to know the max attendees
+    const experienceDoc = await getDoc(doc(db, 'experiences', experienceId));
+    if (!experienceDoc.exists()) {
+      throw new Error('Experiencia no encontrada');
+    }
+    const experience = experienceDoc.data() as Experience;
+    
+    const bookingsRef = collection(db, 'bookings');
+    const q = query(
+      bookingsRef,
+      where('experienceId', '==', experienceId),
+      where('date', '==', date),
+      where('status', 'in', [BookingStatus.PENDING, BookingStatus.CONFIRMED])
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const timeSlotParticipants: { [time: string]: number } = {};
+    
+    querySnapshot.forEach((doc) => {
+      const booking = doc.data() as Booking;
+      if (!timeSlotParticipants[booking.time]) {
+        timeSlotParticipants[booking.time] = 0;
+      }
+      timeSlotParticipants[booking.time] += booking.participants;
+    });
+    
+    // Return times that have reached maximum capacity
+    const fullyBookedTimes = Object.keys(timeSlotParticipants).filter(
+      time => timeSlotParticipants[time] >= experience.maxAttendees
+    );
+    
+    console.log(`🔍 Horarios completos para ${experienceId} el ${date}:`, fullyBookedTimes);
+    
+    return fullyBookedTimes;
+  } catch (error) {
+    console.error('❌ Error al obtener horarios reservados:', error);
+    throw error;
+  }
+};
+
+/**
+ * Checks if a time slot has enough capacity for the requested number of participants.
+ * @param experienceId The experience ID.
+ * @param date The date in YYYY-MM-DD format.
+ * @param time The time in HH:MM format.
+ * @param requestedParticipants The number of participants to add.
+ * @returns A promise that resolves with true if available, false otherwise.
+ */
+export const checkTimeSlotAvailability = async (experienceId: string, date: string, time: string, requestedParticipants: number = 1): Promise<boolean> => {
+  try {
+    // Get the experience to know the max attendees
+    const experienceDoc = await getDoc(doc(db, 'experiences', experienceId));
+    if (!experienceDoc.exists()) {
+      throw new Error('Experiencia no encontrada');
+    }
+    const experience = experienceDoc.data() as Experience;
+    
+    // Get current participants for this time slot
+    const currentParticipants = await getTimeSlotParticipants(experienceId, date, time);
+    const availableSpots = experience.maxAttendees - currentParticipants;
+    const isAvailable = availableSpots >= requestedParticipants;
+    
+    console.log(`🔍 Verificando disponibilidad para ${experienceId} el ${date} a las ${time}:`);
+    console.log(`   - Máximo asistentes: ${experience.maxAttendees}`);
+    console.log(`   - Participantes actuales: ${currentParticipants}`);
+    console.log(`   - Plazas disponibles: ${availableSpots}`);
+    console.log(`   - Participantes solicitados: ${requestedParticipants}`);
+    console.log(`   - Resultado: ${isAvailable ? 'DISPONIBLE' : 'NO DISPONIBLE'}`);
+    
+    return isAvailable;
+  } catch (error) {
+    console.error('❌ Error al verificar disponibilidad:', error);
+    throw error;
+  }
+};
+
+/**
  * Creates a new booking in Firestore.
  * @param bookingData The booking data to create.
  * @returns A promise that resolves with the booking ID.
  */
 export const createBooking = async (bookingData: Omit<Booking, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
   try {
+    // First, check if the time slot has enough capacity
+    const isAvailable = await checkTimeSlotAvailability(bookingData.experienceId, bookingData.date, bookingData.time, bookingData.participants);
+    
+    if (!isAvailable) {
+      throw new Error('No hay suficientes plazas disponibles para este horario. Por favor, selecciona otro horario o reduce el número de participantes.');
+    }
+    
     const bookingsRef = collection(db, 'bookings');
     const newBooking = {
       ...bookingData,
@@ -430,6 +567,35 @@ export const cancelBooking = async (bookingId: string): Promise<void> => {
     console.log('✅ Reserva cancelada exitosamente');
   } catch (error) {
     console.error('❌ Error al cancelar reserva:', error);
+    throw error;
+  }
+};
+
+/**
+ * Gets the available spots for a specific time slot.
+ * @param experienceId The experience ID.
+ * @param date The date in YYYY-MM-DD format.
+ * @param time The time in HH:MM format.
+ * @returns A promise that resolves with the number of available spots.
+ */
+export const getAvailableSpots = async (experienceId: string, date: string, time: string): Promise<number> => {
+  try {
+    // Get the experience to know the max attendees
+    const experienceDoc = await getDoc(doc(db, 'experiences', experienceId));
+    if (!experienceDoc.exists()) {
+      throw new Error('Experiencia no encontrada');
+    }
+    const experience = experienceDoc.data() as Experience;
+    
+    // Get current participants for this time slot
+    const currentParticipants = await getTimeSlotParticipants(experienceId, date, time);
+    const availableSpots = Math.max(0, experience.maxAttendees - currentParticipants);
+    
+    console.log(`🔍 Plazas disponibles para ${experienceId} el ${date} a las ${time}: ${availableSpots}/${experience.maxAttendees}`);
+    
+    return availableSpots;
+  } catch (error) {
+    console.error('❌ Error al obtener plazas disponibles:', error);
     throw error;
   }
 };

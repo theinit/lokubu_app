@@ -1,28 +1,25 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
-import ExperienceCard from './components/ExperienceCard';
-import SearchBar from './components/SearchBar';
 import LoginModal from './components/LoginModal';
 import RegisterModal from './components/RegisterModal';
-import EditProfileModal from './components/EditProfileModal'; // Importar el nuevo modal
+import EditProfileModal from './components/EditProfileModal';
 import CreateExperience from './components/CreateExperience';
 import EditExperience from './components/EditExperience';
 import MyExperiences from './components/MyExperiences';
 import ExperienceDetail from './components/ExperienceDetail';
-import MapComponent from './components/MapComponent';
-import HomePage from './components/HomePage';
+import MainPage from './components/MainPage';
 import MyBookings from './components/MyBookings';
 import HostBookings from './components/HostBookings';
 import { getExperiences, createExperience as apiCreateExperience, updateExperience, deleteExperience } from './services/firestoreService';
 import { Experience, ExperienceCategory, AppView } from './types';
 import { useAuth } from './contexts/AuthContext';
-import { useI18n } from './contexts/I18nContext';
+// import { useI18n } from './contexts/I18nContext'; // Comentado temporalmente
 
 type ActiveModal = 'login' | 'register' | null;
 
 const App: React.FC = () => {
-  const { t } = useI18n();
+  // const { t } = useI18n(); // Comentado temporalmente
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [isLoadingExperiences, setIsLoadingExperiences] = useState(true);
   const [errorExperiences, setErrorExperiences] = useState<string | null>(null);
@@ -38,13 +35,9 @@ const App: React.FC = () => {
   });
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
   const [view, setView] = useState<AppView>(() => {
-    // Recuperar vista del localStorage, pero solo si hay filtros activos
-    const savedLocation = localStorage.getItem('lokubu-location-filter');
+    // Recuperar vista del localStorage, por defecto 'main'
     const savedView = localStorage.getItem('lokubu-current-view') as AppView;
-    if (savedLocation && savedView === 'home') {
-      return 'home';
-    }
-    return 'landing';
+    return savedView && savedView !== 'main' ? savedView : 'main';
   });
   const [selectedExperience, setSelectedExperience] = useState<Experience | null>(null);
   const [editingExperience, setEditingExperience] = useState<Experience | null>(null);
@@ -87,10 +80,10 @@ const App: React.FC = () => {
     localStorage.setItem('lokubu-current-view', view);
   }, [view]);
 
-  // Cambiar automáticamente a 'landing' cuando se desloguea
+  // Cambiar automáticamente a 'main' cuando se desloguea
   useEffect(() => {
-    if (!currentUser && view !== 'landing') {
-      setView('landing');
+    if (!currentUser && view !== 'main') {
+      setView('main');
     }
   }, [currentUser, view]);
 
@@ -149,17 +142,9 @@ const App: React.FC = () => {
   }, []);
 
   const handleNavigate = useCallback((newView: AppView) => {
-      if (newView === 'home') {
+      if (newView === 'main') {
           setSelectedExperience(null);
           setEditingExperience(null);
-      }
-      // Si navegamos a landing, limpiar filtros
-      if (newView === 'landing') {
-          setLocationFilter('');
-          setCategoryFilter(ExperienceCategory.ALL);
-          localStorage.removeItem('lokubu-location-filter');
-          localStorage.removeItem('lokubu-category-filter');
-          localStorage.removeItem('lokubu-current-view');
       }
       setView(newView);
   }, []);
@@ -169,136 +154,46 @@ const App: React.FC = () => {
     setView('edit');
   }, []);
 
-  const handleSearch = useCallback((location: string) => {
-    setLocationFilter(location);
-    // No cambiar la vista automáticamente - mantener en landing
-  }, []);
+  // const handleSearch = useCallback((location: string) => {
+  //   setLocationFilter(location);
+  //   handleNavigate('main');
+  // }, [handleNavigate]); // Comentado temporalmente
 
-  const filteredExperiences = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
-    
-    return experiences.filter(exp => {
-      const matchesLocation = exp.location.toLowerCase().includes(locationFilter.toLowerCase());
-      const matchesCategory = categoryFilter === ExperienceCategory.ALL || exp.category === categoryFilter;
-      
-      // Check if experience has available dates from today onwards
-      const hasAvailableDates = Object.keys(exp.availability || {}).some(dateStr => {
-        const availableDate = new Date(dateStr);
-        return availableDate >= today;
-      });
-      
-      return matchesLocation && matchesCategory && hasAvailableDates;
-    });
-  }, [experiences, locationFilter, categoryFilter]);
+  // const filteredExperiences = useMemo(() => {
+  //   const today = new Date();
+  //   today.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
+  //   
+  //   return experiences.filter(exp => {
+  //     const matchesLocation = exp.location.toLowerCase().includes(locationFilter.toLowerCase());
+  //     const matchesCategory = categoryFilter === ExperienceCategory.ALL || exp.category === categoryFilter;
+  //     
+  //     // Check if experience has available dates from today onwards
+  //     const hasAvailableDates = Object.keys(exp.availability || {}).some(dateStr => {
+  //       const availableDate = new Date(dateStr);
+  //       return availableDate >= today;
+  //     });
+  //     
+  //     return matchesLocation && matchesCategory && hasAvailableDates;
+  //   });
+  // }, [experiences, locationFilter, categoryFilter]); // Comentado temporalmente
   
-  const renderHomeView = () => (
-    <>
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mt-12">
-          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl mb-2">{t('home.mapTitle')}</h2>
-          <p className="text-xl text-gray-300 mb-6">{t('home.mapSubtitle')}</p>
-          <div className="h-[500px] w-full bg-gray-800 rounded-lg shadow-lg border border-gray-700 mb-12 relative z-0">
-              <MapComponent experiences={filteredExperiences} onViewExperience={handleViewExperience} />
-          </div>
-        </div>
-      </div>
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mt-12">
-          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl mb-2">{t('home.exploreTitle')}</h2>
-          <p className="text-xl text-gray-300 mb-6">{t('home.exploreSubtitle')}</p>
-          <SearchBar 
+
+  const renderContent = () => {
+    switch (view) {
+      case 'main':
+        return (
+          <MainPage
+            experiences={experiences}
+            isLoadingExperiences={isLoadingExperiences}
+            errorExperiences={errorExperiences}
             locationFilter={locationFilter}
             categoryFilter={categoryFilter}
             onLocationChange={setLocationFilter}
             onCategoryChange={setCategoryFilter}
-          />
-        </div>
-
-        {isLoadingExperiences ? (
-            <div className="text-center py-16">
-              <h3 className="text-xl font-semibold text-gray-200">{t('common.loading')}</h3>
-            </div>
-        ) : errorExperiences ? (
-            <div className="text-center py-16 bg-red-900/20 border border-red-500 rounded-lg">
-              <h3 className="text-xl font-semibold text-red-300">{t('home.errorTitle')}</h3>
-              <p className="text-red-400 mt-2">{errorExperiences}</p>
-            </div>
-        ) : filteredExperiences.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {filteredExperiences.map(exp => (
-              <ExperienceCard key={exp.id} experience={exp} onViewExperience={handleViewExperience}/>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-16">
-            <h3 className="text-xl font-semibold text-gray-200">{t('home.noExperiences')}</h3>
-            <p className="text-gray-400 mt-2">{t('home.noExperiencesSubtitle')}</p>
-          </div>
-        )}
-      </div>
-    </>
-  );
-
-  const renderContent = () => {
-    switch (view) {
-      case 'landing':
-        // Si hay filtros activos y el usuario está logueado, mostrar resultados
-        if (locationFilter.trim() && currentUser) {
-          return renderHomeView();
-        }
-        // Si hay filtros activos pero no está logueado, mostrar HomePage con resultados
-        if (locationFilter.trim() && !currentUser) {
-          return (
-            <div className="min-h-screen relative overflow-hidden">
-              {/* Imagen de fondo */}
-              <div 
-                className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                style={{ backgroundImage: `url(https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80)` }}
-              >
-                <div className="absolute inset-0 bg-black bg-opacity-50"></div>
-              </div>
-              
-              <div className="relative z-10 min-h-screen flex flex-col">
-                <header className="flex justify-between items-center p-6">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 bg-teal-500 rounded-lg flex items-center justify-center">
-                      <span className="text-white font-bold text-lg">⭐</span>
-                    </div>
-                    <span className="text-white text-2xl font-bold">LOKUBU</span>
-                  </div>
-                  <div className="flex space-x-4">
-                    <button
-                      onClick={() => setActiveModal('login')}
-                      className="px-6 py-2 text-white border border-white rounded-lg hover:bg-white hover:text-gray-900 transition-colors duration-200"
-                    >
-                      {t('header.login')}
-                    </button>
-                    <button
-                      onClick={() => setActiveModal('register')}
-                      className="px-6 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors duration-200"
-                    >
-                      {t('header.register')}
-                    </button>
-                  </div>
-                </header>
-                
-                <main className="flex-1 px-6 py-8 max-w-7xl mx-auto">
-                  <div className="px-4 sm:px-6 lg:px-8">
-                    {renderHomeView()}
-                  </div>
-                </main>
-              </div>
-            </div>
-          );
-        }
-        return (
-          <HomePage 
-            onSearch={handleSearch}
+            onViewExperience={handleViewExperience}
             onOpenLogin={() => setActiveModal('login')}
             onOpenRegister={() => setActiveModal('register')}
-            showHeader={!currentUser}
           />
         );
       case 'create':
@@ -310,7 +205,20 @@ const App: React.FC = () => {
             onSubmit={(updatedData) => handleEditExperience(editingExperience.id, updatedData)} 
             onBack={() => handleNavigate('my-experiences')} 
           />
-        ) : renderHomeView();
+        ) : (
+          <MainPage
+            experiences={experiences}
+            isLoadingExperiences={isLoadingExperiences}
+            errorExperiences={errorExperiences}
+            locationFilter={locationFilter}
+            categoryFilter={categoryFilter}
+            onLocationChange={setLocationFilter}
+            onCategoryChange={setCategoryFilter}
+            onViewExperience={handleViewExperience}
+            onOpenLogin={() => setActiveModal('login')}
+            onOpenRegister={() => setActiveModal('register')}
+          />
+        );
       case 'my-experiences':
         return (
           <MyExperiences 
@@ -326,17 +234,46 @@ const App: React.FC = () => {
       case 'host-bookings':
         return <HostBookings />;
       case 'detail':
-        return selectedExperience ? <ExperienceDetail experience={selectedExperience} onBack={() => handleNavigate(currentUser ? 'home' : 'landing')} /> : renderHomeView();
-      case 'home':
+        return selectedExperience ? <ExperienceDetail experience={selectedExperience} onBack={() => handleNavigate('main')} /> : (
+          <MainPage
+            experiences={experiences}
+            isLoadingExperiences={isLoadingExperiences}
+            errorExperiences={errorExperiences}
+            locationFilter={locationFilter}
+            categoryFilter={categoryFilter}
+            onLocationChange={setLocationFilter}
+            onCategoryChange={setCategoryFilter}
+            onViewExperience={handleViewExperience}
+            onOpenLogin={() => setActiveModal('login')}
+            onOpenRegister={() => setActiveModal('register')}
+          />
+        );
       default:
-        return renderHomeView();
+        return (
+          <MainPage
+            experiences={experiences}
+            isLoadingExperiences={isLoadingExperiences}
+            errorExperiences={errorExperiences}
+            locationFilter={locationFilter}
+            categoryFilter={categoryFilter}
+            onLocationChange={setLocationFilter}
+            onCategoryChange={setCategoryFilter}
+            onViewExperience={handleViewExperience}
+            onOpenLogin={() => setActiveModal('login')}
+            onOpenRegister={() => setActiveModal('register')}
+          />
+        );
     }
   };
 
-  if (view === 'landing') {
-    return (
-      <>
-        {currentUser ? (
+  // Para la vista 'main', mostrar Header/Footer solo cuando hay filtros activos o usuario logueado
+  if (view === 'main') {
+    const hasActiveFilters = locationFilter || categoryFilter !== ExperienceCategory.ALL;
+    const shouldShowHeaderFooter = currentUser || hasActiveFilters;
+    
+    if (shouldShowHeaderFooter) {
+      return (
+        <>
           <div className="flex flex-col min-h-screen bg-gray-900">
             <Header 
                 onLoginClick={() => setActiveModal('login')}
@@ -349,23 +286,59 @@ const App: React.FC = () => {
             </main>
             <Footer />
           </div>
-        ) : (
-          renderContent()
-        )}
-        <LoginModal 
-          isOpen={activeModal === 'login'}
-          onClose={() => setActiveModal(null)}
-          onSwitchToRegister={() => setActiveModal('register')}
-        />
-        <RegisterModal
-          isOpen={activeModal === 'register'}
-          onClose={() => setActiveModal(null)}
-          onSwitchToLogin={() => setActiveModal('login')}
-        />
-      </>
-    );
+          <LoginModal 
+            isOpen={activeModal === 'login'}
+            onClose={() => setActiveModal(null)}
+            onSwitchToRegister={() => setActiveModal('register')}
+          />
+          <RegisterModal
+            isOpen={activeModal === 'register'}
+            onClose={() => setActiveModal(null)}
+            onSwitchToLogin={() => setActiveModal('login')}
+          />
+          {currentUser && (
+            <EditProfileModal
+              isOpen={isEditProfileModalOpen}
+              onClose={() => setIsEditProfileModalOpen(false)}
+              onProfileUpdate={(updatedUser) => {
+                setCurrentUser(updatedUser);
+                setIsEditProfileModalOpen(false);
+              }}
+            />
+          )}
+        </>
+      );
+    } else {
+      // Vista completa sin header/footer para usuarios no logueados sin filtros
+      return (
+        <>
+          {renderContent()}
+          <LoginModal 
+            isOpen={activeModal === 'login'}
+            onClose={() => setActiveModal(null)}
+            onSwitchToRegister={() => setActiveModal('register')}
+          />
+          <RegisterModal
+            isOpen={activeModal === 'register'}
+            onClose={() => setActiveModal(null)}
+            onSwitchToLogin={() => setActiveModal('login')}
+          />
+          {currentUser && (
+            <EditProfileModal
+              isOpen={isEditProfileModalOpen}
+              onClose={() => setIsEditProfileModalOpen(false)}
+              onProfileUpdate={(updatedUser) => {
+                setCurrentUser(updatedUser);
+                setIsEditProfileModalOpen(false);
+              }}
+            />
+          )}
+        </>
+      );
+    }
   }
 
+  // Para otras vistas, usar la estructura tradicional con Header/Footer
   return (
     <>
       <div className="flex flex-col min-h-screen bg-gray-900">
@@ -373,9 +346,9 @@ const App: React.FC = () => {
             onLoginClick={() => setActiveModal('login')}
             onRegisterClick={() => setActiveModal('register')}
             onNavigate={handleNavigate}
-            onOpenEditProfile={() => setIsEditProfileModalOpen(true)} // Pasar la función para abrir el modal
+            onOpenEditProfile={() => setIsEditProfileModalOpen(true)}
         />
-        <main className={`flex-grow ${(view as AppView) === 'landing' ? '' : 'container mx-auto px-4 sm:px-6 lg:px-8'} py-8 md:py-12`}>
+        <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
           {renderContent()}
         </main>
         <Footer />
@@ -391,12 +364,12 @@ const App: React.FC = () => {
         onClose={() => setActiveModal(null)}
         onSwitchToLogin={() => setActiveModal('login')}
       />
-      {currentUser && ( // Solo renderizar si hay un usuario logueado
+      {currentUser && (
         <EditProfileModal
           isOpen={isEditProfileModalOpen}
           onClose={() => setIsEditProfileModalOpen(false)}
           onProfileUpdate={(updatedUser) => {
-            setCurrentUser(updatedUser); // Actualizar el usuario en el contexto global
+            setCurrentUser(updatedUser);
             setIsEditProfileModalOpen(false);
           }}
         />

@@ -30,7 +30,7 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onNavigate, onOpenEdi
   const handleLogout = async () => {
     setIsOpen(false);
     await logout();
-    onNavigate('home');
+    onNavigate('main');
   };
 
   const handleNavigation = (view: AppView) => {
@@ -51,7 +51,7 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onNavigate, onOpenEdi
     
     try {
       await deleteAccount(deletePassword);
-      onNavigate('home');
+      onNavigate('main');
     } catch (error) {
       console.error('Error al eliminar cuenta:', error);
       if (error instanceof Error) {

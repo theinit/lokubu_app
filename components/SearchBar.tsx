@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { ExperienceCategory } from '../types';
 import { useI18n } from '../contexts/I18nContext';
 
@@ -16,6 +16,89 @@ const SearchBar: React.FC<SearchBarProps> = ({
   categoryFilter,
 }) => {
   const { t } = useI18n();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const input = inputRef.current;
+    if (input) {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        console.log('🔍 SearchBar KeyDown:', {
+          key: e.key,
+          inputValue: input.value,
+          inputLength: input.value.length,
+          activeElement: document.activeElement?.id,
+          target: e.target
+        });
+        
+        if (e.key === 'Backspace' || e.key === 'Delete') {
+          console.log(`⬅️ ${e.key} detectado en SearchBar`);
+          
+          // Si el campo está vacío, prevenir cualquier acción
+          if (input.value.length === 0) {
+            console.log('🛑 Campo vacío - previniendo acción');
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            return false;
+          }
+          
+          // Si la acción dejaría el campo vacío, prevenir completamente
+          if ((e.key === 'Backspace' && input.value.length === 1) || 
+              (e.key === 'Delete' && input.selectionStart === 0 && input.value.length === 1)) {
+            console.log('🛑 Previniendo eliminación del último carácter para evitar pérdida de foco');
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            // Limpiar el campo manualmente pero mantener el foco
+            input.value = '';
+            // Disparar el evento onChange manualmente
+            const changeEvent = new Event('input', { bubbles: true });
+            input.dispatchEvent(changeEvent);
+            return false;
+          }
+        }
+      };
+      
+      const handleFocus = (e: FocusEvent) => {
+        console.log('🎯 SearchBar Focus:', {
+          target: e.target,
+          activeElement: document.activeElement?.id
+        });
+      };
+      
+      const handleBlur = (e: FocusEvent) => {
+        console.log('👋 SearchBar Blur:', {
+          target: e.target,
+          relatedTarget: (e.relatedTarget as HTMLElement)?.id || 'unknown',
+          activeElement: document.activeElement?.id,
+          inputValue: input.value
+        });
+        
+        // Si el campo está vacío, prevenir completamente la pérdida de foco
+        if (input.value.length === 0) {
+          console.log('🚫 Previniendo blur en campo vacío');
+          e.preventDefault();
+          e.stopPropagation();
+          setTimeout(() => {
+            if (document.activeElement !== input) {
+              console.log('🔄 Forzando foco de vuelta al SearchBar');
+              input.focus();
+            }
+          }, 0);
+        }
+      };
+      
+      input.addEventListener('keydown', handleKeyDown);
+      input.addEventListener('focus', handleFocus);
+      input.addEventListener('blur', handleBlur);
+      
+      return () => {
+        input.removeEventListener('keydown', handleKeyDown);
+        input.removeEventListener('focus', handleFocus);
+        input.removeEventListener('blur', handleBlur);
+      };
+    }
+  }, []);
 
   const getCategoryLabel = (category: ExperienceCategory) => {
     const categoryMap: Record<ExperienceCategory, string> = {
@@ -40,6 +123,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                 </svg>
             </div>
             <input
+              ref={inputRef}
               id="location-search"
               type="text"
               placeholder={t('search.placeholder')}
