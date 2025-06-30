@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { Experience } from '../types';
@@ -85,8 +85,12 @@ const LocationMarker: React.FC<{ setPosition: (pos: L.LatLng) => void }> = ({ se
 };
 
 const MapComponent: React.FC<MapComponentProps> = ({ experiences, onViewExperience }) => {
-    const [position, setPosition] = useState<L.LatLng | null>(null);
     const initialPosition: L.LatLngExpression = [40.4168, -3.7038]; // Madrid como posición por defecto
+    
+    const setPosition = (pos: L.LatLng) => {
+        // Función para manejar la posición del usuario
+        console.log('User position:', pos);
+    };
 
     return (
         <MapContainer 
@@ -104,25 +108,8 @@ const MapComponent: React.FC<MapComponentProps> = ({ experiences, onViewExperien
             <LocationMarker setPosition={setPosition} />
             {experiences.map(exp => (
                 <Marker key={exp.id} position={[exp.latitude, exp.longitude]}>
-                    <Popup maxWidth={400} className="custom-popup">
-                        <div className="bg-white rounded-lg shadow-lg overflow-hidden min-w-[360px] w-[360px]">
-                            {/* Imagen de la experiencia */}
-                            <div className="relative h-32 bg-gradient-to-r from-teal-400 to-blue-500">
-                                <img 
-                                    src={exp.imageUrl} 
-                                    alt={exp.title}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                        const target = e.target as HTMLImageElement;
-                                        target.style.display = 'none';
-                                    }}
-                                />
-                                <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1 flex items-center gap-1">
-                                    <Star className="w-3 h-3 text-yellow-500 fill-current" />
-                                    <span className="text-xs font-medium text-gray-700">{exp.rating || '4.5'}</span>
-                                </div>
-                            </div>
-                            
+                    <Popup maxWidth={280} className="custom-popup">
+                        <div className="bg-white rounded-lg shadow-lg overflow-hidden min-w-[260px] w-[260px]">
                             {/* Contenido */}
                             <div className="p-3">
                                 <h3 className="font-bold text-lg text-gray-900 mb-1 line-clamp-2">{exp.title}</h3>
@@ -132,7 +119,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ experiences, onViewExperien
                                     <span className="text-sm truncate">{exp.location}</span>
                                 </div>
                                 
-                                <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-4 mb-3">
                                     <div className="flex items-center gap-1">
                                         <DollarSign className="w-4 h-4 text-green-600" />
                                         <span className="font-bold text-lg text-green-600">{exp.price}</span>

@@ -6,9 +6,10 @@ interface HomePageProps {
   onSearch: (location: string) => void;
   onOpenLogin: () => void;
   onOpenRegister: () => void;
+  showHeader?: boolean;
 }
 
-const HomePage: React.FC<HomePageProps> = ({ onSearch, onOpenLogin, onOpenRegister }) => {
+const HomePage: React.FC<HomePageProps> = ({ onSearch, onOpenLogin, onOpenRegister, showHeader = true }) => {
   const { t } = useI18n();
   const [searchLocation, setSearchLocation] = useState('');
 
@@ -51,32 +52,34 @@ const HomePage: React.FC<HomePageProps> = ({ onSearch, onOpenLogin, onOpenRegist
 
       {/* Contenido principal */}
       <div className="relative z-10 min-h-screen flex flex-col">
-        {/* Header */}
-        <header className="flex justify-between items-center p-6">
-          {/* Logo */}
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-teal-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">⭐</span>
+        {/* Header - solo mostrar si showHeader es true */}
+        {showHeader && (
+          <header className="flex justify-between items-center p-6">
+            {/* Logo */}
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-teal-500 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-lg">⭐</span>
+              </div>
+              <span className="text-white text-2xl font-bold">LOKUBU</span>
             </div>
-            <span className="text-white text-2xl font-bold">LOKUBU</span>
-          </div>
 
-          {/* Botones de autenticación */}
-          <div className="flex space-x-4">
-            <button
-              onClick={onOpenLogin}
-              className="px-6 py-2 text-white border border-white rounded-lg hover:bg-white hover:text-gray-900 transition-colors duration-200"
-            >
-              {t('header.login')}
-            </button>
-            <button
-              onClick={onOpenRegister}
-              className="px-6 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors duration-200"
-            >
-              {t('header.register')}
-            </button>
-          </div>
-        </header>
+            {/* Botones de autenticación */}
+            <div className="flex space-x-4">
+              <button
+                onClick={onOpenLogin}
+                className="px-6 py-2 text-white border border-white rounded-lg hover:bg-white hover:text-gray-900 transition-colors duration-200"
+              >
+                {t('header.login')}
+              </button>
+              <button
+                onClick={onOpenRegister}
+                className="px-6 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors duration-200"
+              >
+                {t('header.register')}
+              </button>
+            </div>
+          </header>
+        )}
 
         {/* Contenido central */}
         <div className="flex-1 flex items-center justify-center px-6">

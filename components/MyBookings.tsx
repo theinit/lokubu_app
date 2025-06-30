@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, Users, DollarSign, MessageCircle, X, AlertTriangle } from 'lucide-react';
+import { Calendar, Clock, Users, DollarSign, MessageCircle, X, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getGuestBookings, cancelBooking, sendBookingMessage, getBookingMessages } from '../services/firestoreService';
 import { Booking, BookingStatus, BookingMessage } from '../types';

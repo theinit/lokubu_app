@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ExperienceCategory, Experience } from '../types';
 import Calendar from './Calendar';
 import { generateExperienceImage } from '../services/geminiService';
