@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { ExperienceCategory, Experience } from '../types';
 import Calendar from './Calendar';
+import LocationAutocomplete from './LocationAutocomplete';
 import { generateExperienceImage } from '../services/geminiService';
+import { NormalizedLocation } from '../services/placesService';
 
 type ExperienceData = Omit<Experience, 'id' | 'host' | 'rating'>;
 
@@ -67,6 +69,7 @@ const CreateExperience: React.FC<CreateExperienceProps> = ({ onSubmit, onBack })
     maxAttendees: 10,
     currentAttendees: 0,
     imageUrl: '',
+    meetingPoint: '',
   });
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
@@ -78,6 +81,22 @@ const CreateExperience: React.FC<CreateExperienceProps> = ({ onSubmit, onBack })
     setFormData(prev => ({
       ...prev,
       [name]: (type === 'number') ? parseFloat(value) || 0 : value,
+    }));
+  };
+
+  const handleLocationChange = (location: string, normalizedData?: NormalizedLocation) => {
+    setFormData(prev => ({
+      ...prev,
+      location,
+      latitude: normalizedData?.latitude || 0,
+      longitude: normalizedData?.longitude || 0,
+      placeId: normalizedData?.placeId,
+      normalizedLocation: normalizedData ? {
+        name: normalizedData.name,
+        formattedAddress: normalizedData.formattedAddress,
+        city: normalizedData.city,
+        country: normalizedData.country
+      } : undefined
     }));
   };
   
@@ -177,7 +196,7 @@ const CreateExperience: React.FC<CreateExperienceProps> = ({ onSubmit, onBack })
     e.preventDefault();
     const hasAtLeastOneSlot = Object.values(formData.availability).some(times => times.length > 0);
 
-    if (!formData.title || !formData.description || !formData.location || formData.price <= 0 || !hasAtLeastOneSlot) {
+    if (!formData.title || !formData.description || !formData.location || !formData.meetingPoint || formData.price <= 0 || !hasAtLeastOneSlot) {
       alert('Por favor, rellena todos los campos obligatorios y añade al menos un horario en un día disponible.');
       return;
     }
@@ -224,8 +243,19 @@ const CreateExperience: React.FC<CreateExperienceProps> = ({ onSubmit, onBack })
             </div>
              <div>
               <label htmlFor="location" className="block text-sm font-medium text-gray-300">Ubicación (Ciudad, País)</label>
-              <input type="text" name="location" id="location" value={formData.location} onChange={handleChange} required placeholder="Ej: Barcelona, Spain" className="mt-1 block w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400 rounded-md shadow-sm py-2 px-3 focus:ring-teal-500 focus:border-teal-500" />
+              <LocationAutocomplete
+                value={formData.location}
+                onChange={handleLocationChange}
+                placeholder="Ej: Barcelona, Spain"
+                className="mt-1"
+              />
             </div>
+          </div>
+          
+          <div>
+            <label htmlFor="meetingPoint" className="block text-sm font-medium text-gray-300">Lugar de Encuentro *</label>
+            <input type="text" name="meetingPoint" id="meetingPoint" value={formData.meetingPoint} onChange={handleChange} required placeholder="Ej: Entrada principal del Parque Güell" className="mt-1 block w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400 rounded-md shadow-sm py-2 px-3 focus:ring-teal-500 focus:border-teal-500" />
+            <p className="mt-1 text-xs text-gray-400">Información privada para coordinar el encuentro con los participantes</p>
           </div>
           
           <div>

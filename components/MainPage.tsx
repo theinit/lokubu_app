@@ -6,6 +6,7 @@ import { Experience, ExperienceCategory } from '../types';
 import SearchBar from './SearchBar';
 import MapComponent from './MapComponent';
 import ExperienceCard from './ExperienceCard';
+import placesService from '../services/placesService';
 
 interface MainPageProps {
   experiences: Experience[];
@@ -36,17 +37,22 @@ const MainPage: React.FC<MainPageProps> = ({
   const { currentUser } = useAuth();
   const [heroSearchLocation, setHeroSearchLocation] = useState('');
 
-  // Filtrar experiencias
-  const filteredExperiences = experiences.filter(exp => {
-    const matchesLocation = !locationFilter || 
-      exp.location.toLowerCase().includes(locationFilter.toLowerCase()) ||
-      exp.title.toLowerCase().includes(locationFilter.toLowerCase()) ||
-      exp.description.toLowerCase().includes(locationFilter.toLowerCase());
+  // Filtrar experiencias con búsqueda normalizada
+  const filteredExperiences = (() => {
+    let filtered = experiences;
     
-    const matchesCategory = categoryFilter === ExperienceCategory.ALL || exp.category === categoryFilter;
+    // Filtrar por ubicación usando búsqueda normalizada
+    if (locationFilter) {
+      filtered = placesService.searchByNormalizedLocation(filtered, locationFilter);
+    }
     
-    return matchesLocation && matchesCategory;
-  });
+    // Filtrar por categoría
+    if (categoryFilter !== ExperienceCategory.ALL) {
+      filtered = filtered.filter(exp => exp.category === categoryFilter);
+    }
+    
+    return filtered;
+  })();
 
   const handleHeroSearch = (e: React.FormEvent) => {
     e.preventDefault();

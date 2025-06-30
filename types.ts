@@ -30,6 +30,15 @@ export interface Experience {
   duration: number; // Duration in minutes
   maxAttendees: number; // Número máximo de asistentes
   currentAttendees: number; // Número actual de asistentes registrados
+  meetingPoint: string; // Lugar de encuentro (privado del anfitrión)
+  // Campos para ubicación normalizada
+  placeId?: string; // Google Places ID para normalización
+  normalizedLocation?: {
+    name: string;
+    formattedAddress: string;
+    city?: string;
+    country?: string;
+  };
 }
 
 export interface AITravelActivity {
