@@ -12,21 +12,40 @@ import MyExperiences from './components/MyExperiences';
 import ExperienceDetail from './components/ExperienceDetail';
 import MapComponent from './components/MapComponent';
 import HomePage from './components/HomePage';
+import MyBookings from './components/MyBookings';
+import HostBookings from './components/HostBookings';
 import { getExperiences, createExperience as apiCreateExperience, updateExperience, deleteExperience } from './services/firestoreService';
 import { Experience, ExperienceCategory, AppView } from './types';
 import { useAuth } from './contexts/AuthContext';
+import { useI18n } from './contexts/I18nContext';
 
 type ActiveModal = 'login' | 'register' | null;
 
 const App: React.FC = () => {
+  const { t } = useI18n();
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [isLoadingExperiences, setIsLoadingExperiences] = useState(true);
   const [errorExperiences, setErrorExperiences] = useState<string | null>(null);
   
-  const [locationFilter, setLocationFilter] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<ExperienceCategory>(ExperienceCategory.ALL);
+  const [locationFilter, setLocationFilter] = useState(() => {
+    // Recuperar filtro de ubicación del localStorage
+    return localStorage.getItem('lokubu-location-filter') || '';
+  });
+  const [categoryFilter, setCategoryFilter] = useState<ExperienceCategory>(() => {
+    // Recuperar filtro de categoría del localStorage
+    const saved = localStorage.getItem('lokubu-category-filter');
+    return (saved as ExperienceCategory) || ExperienceCategory.ALL;
+  });
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
-  const [view, setView] = useState<AppView>('landing');
+  const [view, setView] = useState<AppView>(() => {
+    // Recuperar vista del localStorage, pero solo si hay filtros activos
+    const savedLocation = localStorage.getItem('lokubu-location-filter');
+    const savedView = localStorage.getItem('lokubu-current-view') as AppView;
+    if (savedLocation && savedView === 'home') {
+      return 'home';
+    }
+    return 'landing';
+  });
   const [selectedExperience, setSelectedExperience] = useState<Experience | null>(null);
   const [editingExperience, setEditingExperience] = useState<Experience | null>(null);
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false); // Estado para el modal de edición de perfil
@@ -46,8 +65,27 @@ const App: React.FC = () => {
             setIsLoadingExperiences(false);
         }
     };
+
     fetchExperiences();
   }, []);
+
+  // Persistir filtros en localStorage
+  useEffect(() => {
+    if (locationFilter) {
+      localStorage.setItem('lokubu-location-filter', locationFilter);
+    } else {
+      localStorage.removeItem('lokubu-location-filter');
+    }
+  }, [locationFilter]);
+
+  useEffect(() => {
+    localStorage.setItem('lokubu-category-filter', categoryFilter);
+  }, [categoryFilter]);
+
+  // Persistir vista actual en localStorage
+  useEffect(() => {
+    localStorage.setItem('lokubu-current-view', view);
+  }, [view]);
 
   const handleCreateExperience = useCallback(async (newExpData: Omit<Experience, 'id' | 'host' | 'rating' | 'imageUrl'>) => {
     if (!currentUser) {
@@ -108,6 +146,14 @@ const App: React.FC = () => {
           setSelectedExperience(null);
           setEditingExperience(null);
       }
+      // Si navegamos a landing, limpiar filtros
+      if (newView === 'landing') {
+          setLocationFilter('');
+          setCategoryFilter(ExperienceCategory.ALL);
+          localStorage.removeItem('lokubu-location-filter');
+          localStorage.removeItem('lokubu-category-filter');
+          localStorage.removeItem('lokubu-current-view');
+      }
       setView(newView);
   }, []);
 
@@ -132,16 +178,16 @@ const App: React.FC = () => {
   const renderHomeView = () => (
     <>
       <div className="mt-12">
-        <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl mb-2">Descubre Experiencias en el Mapa</h2>
-        <p className="text-xl text-gray-300 mb-6">Encuentra tu próxima aventura explorando las actividades cercanas a ti.</p>
+        <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl mb-2">{t('home.mapTitle')}</h2>
+        <p className="text-xl text-gray-300 mb-6">{t('home.mapSubtitle')}</p>
         <div className="h-[500px] w-full bg-gray-800 rounded-lg shadow-lg border border-gray-700 mb-12 relative z-0">
             <MapComponent experiences={filteredExperiences} onViewExperience={handleViewExperience} />
         </div>
       </div>
 
       <div className="mt-12">
-        <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl mb-2">Explora Todas las Experiencias</h2>
-        <p className="text-xl text-gray-300 mb-6">Filtra y encuentra tu aventura perfecta, guiada por apasionados locales.</p>
+        <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl mb-2">{t('home.exploreTitle')}</h2>
+        <p className="text-xl text-gray-300 mb-6">{t('home.exploreSubtitle')}</p>
         <SearchBar 
           locationFilter={locationFilter}
           categoryFilter={categoryFilter}
@@ -152,11 +198,11 @@ const App: React.FC = () => {
 
       {isLoadingExperiences ? (
           <div className="text-center py-16">
-            <h3 className="text-xl font-semibold text-gray-200">Cargando experiencias...</h3>
+            <h3 className="text-xl font-semibold text-gray-200">{t('common.loading')}</h3>
           </div>
       ) : errorExperiences ? (
           <div className="text-center py-16 bg-red-900/20 border border-red-500 rounded-lg">
-            <h3 className="text-xl font-semibold text-red-300">Error al Cargar Datos</h3>
+            <h3 className="text-xl font-semibold text-red-300">{t('home.errorTitle')}</h3>
             <p className="text-red-400 mt-2">{errorExperiences}</p>
           </div>
       ) : filteredExperiences.length > 0 ? (
@@ -167,8 +213,8 @@ const App: React.FC = () => {
         </div>
       ) : (
         <div className="text-center py-16">
-          <h3 className="text-xl font-semibold text-gray-200">No se encontraron experiencias</h3>
-          <p className="text-gray-400 mt-2">Intenta ajustar tus filtros de búsqueda para encontrar más aventuras.</p>
+          <h3 className="text-xl font-semibold text-gray-200">{t('home.noExperiences')}</h3>
+          <p className="text-gray-400 mt-2">{t('home.noExperiencesSubtitle')}</p>
         </div>
       )}
     </>
@@ -204,6 +250,10 @@ const App: React.FC = () => {
             onDeleteExperience={handleDeleteExperience}
           />
         );
+      case 'bookings':
+        return <MyBookings />;
+      case 'host-bookings':
+        return <HostBookings />;
       case 'detail':
         return selectedExperience ? <ExperienceDetail experience={selectedExperience} onBack={() => handleNavigate(currentUser ? 'home' : 'landing')} /> : renderHomeView();
       case 'home':

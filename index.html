@@ -25,6 +25,78 @@
         }
       }
     </script>
+    <style>
+      /* Estilos personalizados para el popup del mapa */
+      .leaflet-popup-content-wrapper {
+        border-radius: 12px !important;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        min-width: 360px !important;
+        width: 360px !important;
+      }
+      
+      .leaflet-popup-content {
+        margin: 0 !important;
+        padding: 0 !important;
+        border-radius: 12px !important;
+        overflow: hidden !important;
+        min-width: 360px !important;
+        width: 360px !important;
+      }
+      
+      .leaflet-popup-tip {
+        background: white !important;
+        border: none !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+      }
+      
+      .custom-popup .leaflet-popup-close-button {
+        color: #374151 !important;
+        font-size: 18px !important;
+        font-weight: bold !important;
+        padding: 8px !important;
+        background: rgba(255, 255, 255, 0.9) !important;
+        border-radius: 50% !important;
+        width: 30px !important;
+        height: 30px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 8px !important;
+        transition: all 0.2s ease !important;
+      }
+      
+      .custom-popup .leaflet-popup-close-button:hover {
+        background: rgba(239, 68, 68, 0.1) !important;
+        color: #ef4444 !important;
+        transform: scale(1.1) !important;
+      }
+      
+      /* Animación de entrada para el popup */
+      .leaflet-popup {
+        animation: popupFadeIn 0.3s ease-out !important;
+      }
+      
+      @keyframes popupFadeIn {
+        0% {
+          opacity: 0;
+          transform: translateY(-10px) scale(0.95);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+      
+      /* Estilos para truncar texto */
+      .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+    </style>
   <script type="importmap">
 {
   "imports": {

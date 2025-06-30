@@ -1,7 +1,7 @@
-import { doc, setDoc, getDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'; // Imports para Storage
 import { db, storage } from '../firebase/config'; // Importar storage
-import { Experience, User } from '../types';
+import { Experience, User, Booking, BookingStatus, BookingMessage } from '../types';
 
 type ExperienceData = Omit<Experience, 'id' | 'host' | 'rating' | 'imageUrl'>;
 
@@ -297,4 +297,225 @@ export const updateExperience = async (experienceId: string, experienceData: Par
 export const deleteExperience = async (experienceId: string): Promise<void> => {
   const experienceRef = doc(db, "experiences", experienceId);
   await deleteDoc(experienceRef);
+};
+
+// --- BOOKING-RELATED FUNCTIONS ---
+
+/**
+ * Creates a new booking in Firestore.
+ * @param bookingData The booking data to create.
+ * @returns A promise that resolves with the booking ID.
+ */
+export const createBooking = async (bookingData: Omit<Booking, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
+  try {
+    const bookingsRef = collection(db, 'bookings');
+    const newBooking = {
+      ...bookingData,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    const docRef = await addDoc(bookingsRef, newBooking);
+    console.log('✅ Reserva creada exitosamente:', docRef.id);
+    return docRef.id;
+  } catch (error) {
+    console.error('❌ Error al crear reserva:', error);
+    throw error;
+  }
+};
+
+/**
+ * Gets all bookings for a specific guest.
+ * @param guestId The guest's user ID.
+ * @returns A promise that resolves with an array of bookings.
+ */
+export const getGuestBookings = async (guestId: string): Promise<Booking[]> => {
+  try {
+    console.log('🔄 Consultando reservas para huésped:', guestId);
+    const bookingsRef = collection(db, 'bookings');
+    const q = query(bookingsRef, where('guestId', '==', guestId), orderBy('createdAt', 'desc'));
+    console.log('🔄 Ejecutando query de Firestore...');
+    const querySnapshot = await getDocs(q);
+    console.log('✅ Query ejecutada, documentos encontrados:', querySnapshot.size);
+    
+    const bookings: Booking[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      console.log('📄 Procesando documento:', doc.id, data);
+      bookings.push({
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt?.toDate() || new Date(),
+        updatedAt: data.updatedAt?.toDate() || new Date()
+      } as Booking);
+    });
+    
+    console.log('✅ Reservas procesadas:', bookings.length);
+    return bookings;
+  } catch (error) {
+    console.error('❌ Error al obtener reservas del huésped:', error);
+    throw error;
+  }
+};
+
+/**
+ * Gets all bookings for a specific host.
+ * @param hostId The host's user ID.
+ * @returns A promise that resolves with an array of bookings.
+ */
+export const getHostBookings = async (hostId: string): Promise<Booking[]> => {
+  try {
+    console.log('🔄 Consultando reservas para anfitrión:', hostId);
+    const bookingsRef = collection(db, 'bookings');
+    const q = query(bookingsRef, where('hostId', '==', hostId), orderBy('createdAt', 'desc'));
+    console.log('🔄 Ejecutando query de Firestore...');
+    const querySnapshot = await getDocs(q);
+    console.log('✅ Query ejecutada, documentos encontrados:', querySnapshot.size);
+    
+    const bookings: Booking[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      console.log('📄 Procesando documento:', doc.id, data);
+      bookings.push({
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt?.toDate() || new Date(),
+        updatedAt: data.updatedAt?.toDate() || new Date()
+      } as Booking);
+    });
+    
+    console.log('✅ Reservas procesadas:', bookings.length);
+    return bookings;
+  } catch (error) {
+    console.error('❌ Error al obtener reservas del anfitrión:', error);
+    throw error;
+  }
+};
+
+/**
+ * Updates a booking status.
+ * @param bookingId The booking ID.
+ * @param status The new status.
+ * @param hostResponse Optional response message from host.
+ * @returns A promise that resolves when the booking is updated.
+ */
+export const updateBookingStatus = async (bookingId: string, status: BookingStatus, hostResponse?: string): Promise<void> => {
+  try {
+    const bookingRef = doc(db, 'bookings', bookingId);
+    const updateData: any = {
+      status,
+      updatedAt: new Date()
+    };
+    
+    if (hostResponse) {
+      updateData.hostResponse = hostResponse;
+    }
+    
+    await updateDoc(bookingRef, updateData);
+    console.log('✅ Estado de reserva actualizado exitosamente');
+  } catch (error) {
+    console.error('❌ Error al actualizar estado de reserva:', error);
+    throw error;
+  }
+};
+
+/**
+ * Cancels a booking (sets status to cancelled).
+ * @param bookingId The booking ID.
+ * @returns A promise that resolves when the booking is cancelled.
+ */
+export const cancelBooking = async (bookingId: string): Promise<void> => {
+  try {
+    await updateBookingStatus(bookingId, BookingStatus.CANCELLED);
+    console.log('✅ Reserva cancelada exitosamente');
+  } catch (error) {
+    console.error('❌ Error al cancelar reserva:', error);
+    throw error;
+  }
+};
+
+/**
+ * Gets a specific booking by ID.
+ * @param bookingId The booking ID.
+ * @returns A promise that resolves with the booking data.
+ */
+export const getBooking = async (bookingId: string): Promise<Booking | null> => {
+  try {
+    const bookingRef = doc(db, 'bookings', bookingId);
+    const bookingSnap = await getDoc(bookingRef);
+    
+    if (bookingSnap.exists()) {
+      const data = bookingSnap.data();
+      return {
+        id: bookingSnap.id,
+        ...data,
+        createdAt: data.createdAt?.toDate() || new Date(),
+        updatedAt: data.updatedAt?.toDate() || new Date()
+      } as Booking;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('❌ Error al obtener reserva:', error);
+    throw error;
+  }
+};
+
+// --- BOOKING MESSAGES FUNCTIONS ---
+
+/**
+ * Sends a message related to a booking.
+ * @param messageData The message data.
+ * @returns A promise that resolves with the message ID.
+ */
+export const sendBookingMessage = async (messageData: Omit<BookingMessage, 'id' | 'timestamp'>): Promise<string> => {
+  console.log('📤 Enviando mensaje:', { bookingId: messageData.bookingId, senderName: messageData.senderName, isFromHost: messageData.isFromHost });
+  try {
+    const messagesRef = collection(db, 'bookingMessages');
+    const newMessage = {
+      ...messageData,
+      timestamp: new Date()
+    };
+    
+    console.log('💾 Datos del mensaje a guardar:', newMessage);
+    const docRef = await addDoc(messagesRef, newMessage);
+    console.log('✅ Mensaje enviado exitosamente con ID:', docRef.id);
+    return docRef.id;
+  } catch (error) {
+    console.error('❌ Error al enviar mensaje:', error);
+    throw error;
+  }
+};
+
+/**
+ * Gets all messages for a specific booking.
+ * @param bookingId The booking ID.
+ * @returns A promise that resolves with an array of messages.
+ */
+export const getBookingMessages = async (bookingId: string): Promise<BookingMessage[]> => {
+  console.log('🔄 Cargando mensajes para reserva:', bookingId);
+  try {
+    const messagesRef = collection(db, 'bookingMessages');
+    const q = query(messagesRef, where('bookingId', '==', bookingId), orderBy('timestamp', 'asc'));
+    console.log('📋 Ejecutando consulta de mensajes...');
+    const querySnapshot = await getDocs(q);
+    console.log('📊 Documentos encontrados:', querySnapshot.size);
+    
+    const messages: BookingMessage[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      console.log('💬 Mensaje encontrado:', { id: doc.id, senderName: data.senderName, isFromHost: data.isFromHost });
+      messages.push({
+        id: doc.id,
+        ...data,
+        timestamp: data.timestamp?.toDate() || new Date()
+      } as BookingMessage);
+    });
+    
+    console.log('✅ Total de mensajes cargados:', messages.length);
+    return messages;
+  } catch (error) {
+    console.error('❌ Error al obtener mensajes de reserva:', error);
+    throw error;
+  }
 };

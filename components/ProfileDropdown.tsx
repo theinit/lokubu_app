@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useI18n } from '../contexts/I18nContext';
 import { AppView } from '../types';
 
 interface ProfileDropdownProps {
@@ -9,6 +10,7 @@ interface ProfileDropdownProps {
 
 const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onNavigate, onOpenEditProfile }) => {
   const { currentUser, logout, deleteAccount } = useAuth();
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
@@ -121,26 +123,38 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onNavigate, onOpenEdi
               onClick={handleOpenEditProfileModal}
               className="w-full text-left block px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-700 transition-colors"
             >
-              Editar Perfil
+              {t('profile.editProfile')}
             </button>
             <button
               onClick={() => handleNavigation('create')}
               className="w-full text-left block px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-700 transition-colors"
             >
-              Crear Experiencia
+              {t('profile.createExperience')}
             </button>
             <button
                onClick={() => handleNavigation('my-experiences')}
               className="w-full text-left block px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-700 transition-colors"
             >
-              Mis Experiencias
+              {t('profile.myExperiences')}
+            </button>
+            <button
+               onClick={() => handleNavigation('bookings')}
+              className="w-full text-left block px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-700 transition-colors"
+            >
+              Mis Reservas
+            </button>
+            <button
+               onClick={() => handleNavigation('host-bookings')}
+              className="w-full text-left block px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-700 transition-colors"
+            >
+              Gestionar Reservas
             </button>
             <div className="border-t border-gray-700 my-1"></div>
             <button
               onClick={handleLogout}
               className="w-full text-left block px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-700 transition-colors"
             >
-              Cerrar Sesión
+              {t('profile.logout')}
             </button>
             <button
               onClick={handleDeleteClick}

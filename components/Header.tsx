@@ -1,6 +1,8 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useI18n } from '../contexts/I18nContext';
 import ProfileDropdown from './ProfileDropdown';
+import LanguageSelector from './LanguageSelector';
 import { AppView } from '../types';
 
 interface HeaderProps {
@@ -13,6 +15,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onLoginClick, onRegisterClick, onNavigate, onOpenEditProfile }) => {
   const { currentUser } = useAuth();
+  const { t } = useI18n();
   
   return (
     <header className="bg-gray-800 shadow-lg sticky top-0 z-30 border-b border-gray-700">
@@ -27,15 +30,16 @@ const Header: React.FC<HeaderProps> = ({ onLoginClick, onRegisterClick, onNaviga
             </button>
           </div>
           <nav className="flex items-center space-x-4">
+            <LanguageSelector />
              {currentUser ? (
                <ProfileDropdown onNavigate={onNavigate} onOpenEditProfile={onOpenEditProfile} />
              ) : (
                 <div className="hidden md:flex items-center space-x-4">
                     <button onClick={onLoginClick} className="text-gray-300 hover:text-white font-medium">
-                        Iniciar Sesión
+                        {t('header.login')}
                     </button>
                     <button onClick={onRegisterClick} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700">
-                        Registrarse
+                        {t('header.register')}
                     </button>
                 </div>
              )}

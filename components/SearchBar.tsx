@@ -1,5 +1,6 @@
 import React from 'react';
 import { ExperienceCategory } from '../types';
+import { useI18n } from '../contexts/I18nContext';
 
 interface SearchBarProps {
   onLocationChange: (location: string) => void;
@@ -14,6 +15,19 @@ const SearchBar: React.FC<SearchBarProps> = ({
   locationFilter,
   categoryFilter,
 }) => {
+  const { t } = useI18n();
+
+  const getCategoryLabel = (category: ExperienceCategory) => {
+    const categoryMap: Record<ExperienceCategory, string> = {
+      [ExperienceCategory.ALL]: t('category.all'),
+      [ExperienceCategory.GASTRONOMY]: t('category.food'),
+      [ExperienceCategory.CULTURE]: t('category.culture'),
+      [ExperienceCategory.ADVENTURE]: t('category.adventure'),
+      [ExperienceCategory.NATURE]: t('category.nature'),
+      [ExperienceCategory.HISTORY]: t('category.history'),
+    };
+    return categoryMap[category] || category;
+  };
   return (
     <div className="bg-gray-800 p-4 rounded-xl shadow-lg mb-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
@@ -28,7 +42,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
             <input
               id="location-search"
               type="text"
-              placeholder="Search by location (e.g., Kyoto, Ireland)"
+              placeholder={t('search.placeholder')}
               value={locationFilter}
               onChange={(e) => onLocationChange(e.target.value)}
               className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 text-white placeholder-gray-400 rounded-md focus:ring-teal-500 focus:border-teal-500"
@@ -44,7 +58,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
             className="w-full py-3 px-4 border border-gray-600 bg-gray-700 text-white rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500"
           >
             {Object.values(ExperienceCategory).map((cat) => (
-              <option key={cat} value={cat}>{cat}</option>
+              <option key={cat} value={cat}>{getCategoryLabel(cat)}</option>
             ))}
           </select>
         </div>

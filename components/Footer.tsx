@@ -1,12 +1,14 @@
 import React from 'react';
+import { useI18n } from '../contexts/I18nContext';
 
 const Footer: React.FC = () => {
+  const { t } = useI18n();
   return (
     <footer className="bg-gray-800 border-t border-gray-700">
       <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center">
           <p className="text-center text-gray-400 text-sm">
-            &copy; {new Date().getFullYear()} LocalConnect. All rights reserved.
+            &copy; {new Date().getFullYear()} Lokubu. {t('footer.rights')}
           </p>
           <div className="flex space-x-6">
             <a href="#" className="text-gray-500 hover:text-white">

@@ -59,4 +59,43 @@ export interface User {
   photoURL?: string;
 }
 
-export type AppView = 'landing' | 'home' | 'create' | 'my-experiences' | 'detail' | 'edit' | 'edit-profile';
+export type AppView = 'landing' | 'home' | 'create' | 'my-experiences' | 'detail' | 'edit' | 'edit-profile' | 'bookings' | 'host-bookings';
+
+export enum BookingStatus {
+  PENDING = "pending",
+  CONFIRMED = "confirmed",
+  REJECTED = "rejected",
+  CANCELLED = "cancelled",
+  COMPLETED = "completed"
+}
+
+export interface Booking {
+  id: string;
+  experienceId: string;
+  experienceTitle: string;
+  experienceImageUrl: string;
+  hostId: string;
+  hostName: string;
+  guestId: string;
+  guestName: string;
+  guestEmail: string;
+  date: string; // YYYY-MM-DD
+  time: string; // HH:MM
+  participants: number;
+  totalPrice: number;
+  status: BookingStatus;
+  createdAt: Date;
+  updatedAt: Date;
+  message?: string; // Mensaje del huésped al hacer la reserva
+  hostResponse?: string; // Respuesta del anfitrión
+}
+
+export interface BookingMessage {
+  id: string;
+  bookingId: string;
+  senderId: string;
+  senderName: string;
+  message: string;
+  timestamp: Date;
+  isFromHost: boolean;
+}

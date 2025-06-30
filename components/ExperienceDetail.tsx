@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Experience } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import Calendar from './Calendar';
+import BookingForm from './BookingForm';
 
 interface ExperienceDetailProps {
   experience: Experience;
@@ -34,6 +35,7 @@ const ExperienceDetail: React.FC<ExperienceDetailProps> = ({ experience, onBack 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [bookingMessage, setBookingMessage] = useState<string | null>(null);
+  const [showBookingForm, setShowBookingForm] = useState(false);
 
   const handleDateSelection = (dates: string[]) => {
       const newDate = dates[0] || null;
@@ -48,15 +50,20 @@ const ExperienceDetail: React.FC<ExperienceDetailProps> = ({ experience, onBack 
       }
       
       // Check if experience is at capacity
-      if (experience.currentAttendees >= experience.maxAttendees) {
+      if(experience.currentAttendees >= experience.maxAttendees) {
           setBookingMessage("Lo sentimos, esta experiencia ya está completa. No hay plazas disponibles.");
           setTimeout(() => setBookingMessage(null), 5000);
           return;
       }
       
-      // Simulate booking
-      setBookingMessage(`¡Reserva confirmada para el ${selectedDate} a las ${selectedTime}! Se ha enviado una confirmación.`);
+      setShowBookingForm(true);
+  }
+
+  const handleBookingCreated = () => {
+      setBookingMessage("¡Reserva creada exitosamente! El anfitrión recibirá tu solicitud.");
       setTimeout(() => setBookingMessage(null), 5000);
+      setSelectedDate(null);
+      setSelectedTime(null);
   }
 
   return (
@@ -172,6 +179,16 @@ const ExperienceDetail: React.FC<ExperienceDetailProps> = ({ experience, onBack 
           </div>
         </div>
       </div>
+      
+      {showBookingForm && (
+        <BookingForm
+          experience={experience}
+          selectedDate={selectedDate || ''}
+          selectedTime={selectedTime || ''}
+          onClose={() => setShowBookingForm(false)}
+          onBookingCreated={handleBookingCreated}
+        />
+      )}
     </div>
   );
 };

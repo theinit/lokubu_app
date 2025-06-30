@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { MapPin, Search } from 'lucide-react';
+import { useI18n } from '../contexts/I18nContext';
 
 interface HomePageProps {
   onSearch: (location: string) => void;
@@ -8,6 +9,7 @@ interface HomePageProps {
 }
 
 const HomePage: React.FC<HomePageProps> = ({ onSearch, onOpenLogin, onOpenRegister }) => {
+  const { t } = useI18n();
   const [searchLocation, setSearchLocation] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -31,15 +33,17 @@ const HomePage: React.FC<HomePageProps> = ({ onSearch, onOpenLogin, onOpenRegist
     'https://images.unsplash.com/photo-1528543606781-2f6e6857f318?ixlib=rb-4.0.3&auto=format&fit=crop&w=2065&q=80', // Roma
   ];
 
-  // Seleccionar imagen aleatoria
-  const randomImage = backgroundImages[Math.floor(Math.random() * backgroundImages.length)];
+  // Seleccionar imagen aleatoria solo una vez al montar el componente
+  const [backgroundImage] = useState(() => 
+    backgroundImages[Math.floor(Math.random() * backgroundImages.length)]
+  );
 
   return (
     <div className="min-h-screen relative overflow-hidden">
       {/* Imagen de fondo */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${randomImage})` }}
+        style={{ backgroundImage: `url(${backgroundImage})` }}
       >
         {/* Overlay oscuro para mejorar legibilidad */}
         <div className="absolute inset-0 bg-black bg-opacity-50"></div>
@@ -63,13 +67,13 @@ const HomePage: React.FC<HomePageProps> = ({ onSearch, onOpenLogin, onOpenRegist
               onClick={onOpenLogin}
               className="px-6 py-2 text-white border border-white rounded-lg hover:bg-white hover:text-gray-900 transition-colors duration-200"
             >
-              Iniciar Sesión
+              {t('header.login')}
             </button>
             <button
               onClick={onOpenRegister}
               className="px-6 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors duration-200"
             >
-              Registrarse
+              {t('header.register')}
             </button>
           </div>
         </header>
@@ -79,13 +83,12 @@ const HomePage: React.FC<HomePageProps> = ({ onSearch, onOpenLogin, onOpenRegist
           <div className="max-w-2xl w-full text-center">
             {/* Título principal */}
             <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
-              Descubre el
-              <span className="text-teal-400 block">Mundo</span>
+              {t('home.title')}
             </h1>
             
             {/* Subtítulo */}
             <p className="text-xl md:text-2xl text-gray-200 mb-12 leading-relaxed">
-              Encuentra experiencias únicas y auténticas en cualquier destino del mundo
+              {t('home.subtitle')}
             </p>
 
             {/* Formulario de búsqueda */}
@@ -99,7 +102,7 @@ const HomePage: React.FC<HomePageProps> = ({ onSearch, onOpenLogin, onOpenRegist
                   type="text"
                   value={searchLocation}
                   onChange={(e) => setSearchLocation(e.target.value)}
-                  placeholder="¿A dónde quieres ir? (ciudad, región, país...)"
+                  placeholder={t('home.searchPlaceholder')}
                   className="flex-1 py-6 px-2 text-lg text-gray-900 placeholder-gray-500 focus:outline-none"
                 />
                 
@@ -108,7 +111,7 @@ const HomePage: React.FC<HomePageProps> = ({ onSearch, onOpenLogin, onOpenRegist
                   className="bg-teal-500 hover:bg-teal-600 text-white px-8 py-6 transition-colors duration-200 flex items-center space-x-2"
                 >
                   <Search className="w-6 h-6" />
-                  <span className="font-semibold text-lg">Buscar</span>
+                  <span className="font-semibold text-lg">{t('search.button')}</span>
                 </button>
               </div>
             </form>

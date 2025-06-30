@@ -27,6 +27,23 @@ service cloud.firestore {
         (resource == null || resource.data.createdBy == request.auth.uid);
     }
     
+    // Reglas para reservas (bookings)
+    match /bookings/{bookingId} {
+      // Permitir lectura y escritura al huésped y al anfitrión de la reserva
+      allow read, write: if request.auth != null && 
+        (request.auth.uid == resource.data.guestId || 
+         request.auth.uid == resource.data.hostId);
+      // Permitir creación de nuevas reservas a usuarios autenticados
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.guestId;
+    }
+    
+    // Reglas para mensajes de reservas
+    match /bookingMessages/{messageId} {
+      // Permitir lectura y escritura a usuarios autenticados
+      allow read, write: if request.auth != null;
+    }
+    
     // Regla general para otras colecciones (opcional)
     match /{document=**} {
       // Permitir lectura y escritura para usuarios autenticados
